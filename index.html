@@ -496,16 +496,23 @@ document.getElementById('googleSignInBtn').addEventListener('click', function() 
     }
   }
 
-  _showAuthFallback(message) {
+ _showAuthFallback(message) {
     console.warn(message);
     this.elements.googleSignInBtn.classList.add('hidden');
     this.elements.authError.textContent = message + '. Please use password login.';
     this.elements.authError.classList.remove('hidden');
-  }
+}
 
-                this.elements = this._initElements();
-                this._setupEventListeners();
-                this._initializeGoogleAuthWithRetry();
+_initializeGoogleAuthWithRetry(attempt = 0) {
+    const maxAttempts = 3;
+    // Rest of your method implementation
+}
+
+// Then in your constructor or initialization code:
+this.elements = this._initElements();
+this._setupEventListeners();
+this._initializeGoogleAuthWithRetry();
+               
                 
 }
             _initializeGoogleAuthWithRetry(attempt = 0) {
