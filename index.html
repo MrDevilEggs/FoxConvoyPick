@@ -369,13 +369,12 @@
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
     <script>
         class LeaderTrackerApp {
             constructor() {
-                // App state
+                // Initialize state first
                 this.state = {
                     isAdmin: false,
                     currentPage: 0,
@@ -385,9 +384,22 @@
                     authToken: localStorage.getItem('authToken') || null
                 };
 
-                // DOM Elements
+                // Then initialize DOM elements
+                this.initElements();
+                
+                // Then set up API URL
+                this.API_URL = 'https://script.google.com/macros/s/AKfycbyPjRD5VygOLikSy1sNx-JnXmwg2F1oooRfg7RzPr8jT8D_yKkI_EEKB0YBk3hNlHfo/exec';
+                
+                // Finally set up event listeners
+                this.setupEventListeners();
+                
+                // Check auth state and load data
+                this.checkAuthState();
+                this.loadData();
+            }
+
+            initElements() {
                 this.elements = {
-                    // Main UI
                     authButtons: document.getElementById('authButtons'),
                     loginBtn: document.getElementById('loginBtn'),
                     logoutBtn: null,
@@ -400,16 +412,12 @@
                     refreshBtn: document.getElementById('refreshBtn'),
                     refreshText: document.getElementById('refreshText'),
                     refreshSpinner: document.getElementById('refreshSpinner'),
-
-                    // Form elements
                     leaderInput: document.getElementById('leader'),
                     support1Input: document.getElementById('support1'),
                     support2Input: document.getElementById('support2'),
                     addEntryBtn: document.getElementById('addEntryBtn'),
                     updateEntryBtn: document.getElementById('updateEntryBtn'),
                     cancelEditBtn: document.getElementById('cancelEditBtn'),
-
-                    // Modals
                     loginModal: document.getElementById('loginModal'),
                     passwordInput: document.getElementById('password'),
                     cancelLoginBtn: document.getElementById('cancelLoginBtn'),
@@ -420,23 +428,58 @@
                     cancelConfirmBtn: document.getElementById('cancelConfirmBtn'),
                     submitConfirmBtn: document.getElementById('submitConfirmBtn')
                 };
-
-                // API endpoint - REPLACE WITH YOUR ACTUAL DEPLOYED URL
-                this.API_URL = 'https://script.google.com/macros/s/AKfycbyPjRD5VygOLikSy1sNx-JnXmwg2F1oooRfg7RzPr8jT8D_yKkI_EEKB0YBk3hNlHfo/exec';
-
-                // Initialize
-                this.init();
             }
 
-            // ... [Rest of your JavaScript class implementation remains unchanged] ...
-            // All other methods (init, setupEventListeners, etc.) stay exactly the same
-            // Only the constructor was modified to fix the ScriptApp issue
+            setupEventListeners() {
+                // Auth buttons
+                this.elements.loginBtn.addEventListener('click', () => this.showLoginModal());
+
+                // Form actions
+                this.elements.addEntryBtn.addEventListener('click', () => this.handleAddEntry());
+                this.elements.updateEntryBtn.addEventListener('click', () => this.handleUpdateEntry());
+                this.elements.cancelEditBtn.addEventListener('click', () => this.cancelEdit());
+
+                // Data actions
+                this.elements.refreshBtn.addEventListener('click', () => this.loadData());
+                this.elements.prevPageBtn.addEventListener('click', () => this.prevPage());
+                this.elements.nextPageBtn.addEventListener('click', () => this.nextPage());
+
+                // Modal actions
+                this.elements.cancelLoginBtn.addEventListener('click', () => this.hideLoginModal());
+                this.elements.submitLoginBtn.addEventListener('click', () => this.handleLogin());
+                this.elements.cancelConfirmBtn.addEventListener('click', () => this.hideConfirmModal());
+                this.elements.passwordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.handleLogin();
+                });
+            }
+
+            // [All other methods remain exactly the same as in your previous implementation]
+            // checkAuthState, showAdminUI, hideAdminUI, showLoginModal, hideLoginModal,
+            // showConfirmModal, hideConfirmModal, loadData, renderEntries, handleAddEntry,
+            // startEdit, handleUpdateEntry, cancelEdit, confirmDelete, handleDelete,
+            // clearForm, updatePagination, prevPage, nextPage, handleLogin, handleLogout,
+            // apiRequest, showLoading, showSuccess, showError, formatDate
         }
 
         // Initialize the app when the DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
-            new LeaderTrackerApp();
+            try {
+                new LeaderTrackerApp();
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                // You might want to show an error message to the user here
+                const errorDiv = document.createElement('div');
+                errorDiv.style.color = 'red';
+                errorDiv.style.padding = '20px';
+                errorDiv.style.backgroundColor = '#f8d7da';
+                errorDiv.style.border = '1px solid #f5c6cb';
+                errorDiv.style.borderRadius = '4px';
+                errorDiv.style.margin = '20px';
+                errorDiv.innerHTML = '<h3>Application Error</h3><p>Failed to initialize the application. Please try refreshing the page.</p>';
+                document.body.prepend(errorDiv);
+            }
         });
     </script>
+    
 </body>
 </html>
