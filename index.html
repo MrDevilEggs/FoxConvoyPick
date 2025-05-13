@@ -6,7 +6,6 @@
     <title>Discord Leader Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         :root {
             --discord-blurple: #5865F2;
@@ -273,6 +272,24 @@
             background-color: #3367D6;
         }
 
+        .auth-error {
+            padding: 10px;
+            background: var(--discord-red);
+            color: white;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .auth-error button {
+            background: white;
+            color: var(--discord-red);
+            border: none;
+            padding: 5px 10px;
+            margin-top: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -302,13 +319,29 @@
             }
         }
     </style>
+    <script>
+        function loadGoogleAuth() {
+            return new Promise((resolve, reject) => {
+                if (window.google) return resolve();
+                
+                const script = document.createElement('script');
+                script.src = 'https://accounts.google.com/gsi/client';
+                script.async = true;
+                script.defer = true;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+    </script>
 </head>
 <body>
     <div class="container">
         <header class="header">
             <h1>Daily Leader Tracker</h1>
             <div id="authButtons">
-                <div id="googleSignInBtn" class="btn">Sign in with Google</div>
+                <div id="authError" class="auth-error hidden"></div>
+                <div id="googleSignInBtn" class="btn hidden">Sign in with Google</div>
                 <button id="hashLoginBtn" class="btn btn-primary">Password Login</button>
                 <button id="logoutBtn" class="btn btn-danger hidden">Logout</button>
             </div>
@@ -390,36 +423,28 @@
     <script>
         class LeaderTrackerApp {
             constructor() {
-                // Initialize with your specific script URL
                 this.API_URL = 'https://script.google.com/macros/s/AKfycbxYTFtOn-R1i2CdLIXKY3r_J8OLXrjvGLDtXKTHPc9tW8CxHOglpMK7fN9xYTortfCA/exec';
-                
-                // Initialize state
+                this.GOOGLE_CLIENT_ID = '876594018968-45h7apue4le7vre10o5m62buushftq6t.apps.googleusercontent.com';
                 this.state = {
                     isAdmin: false,
                     currentPage: 0,
                     pageSize: 10,
                     totalEntries: 0,
                     editingId: null,
-                    authMethod: null, // 'google' or 'hash'
-                    authToken: null
+                    authMethod: null,
+                    authToken: null,
+                    googleReady: false
                 };
 
-                // Initialize elements
                 this.elements = this._initElements();
-                
-                // Setup event listeners
                 this._setupEventListeners();
-                
-                // Initialize Google Auth
-                this._setupGoogleAuth();
-                
-                // Check initial auth state
-                this.checkAuthState();
+                this._initializeAuth();
             }
 
             _initElements() {
                 return {
                     authButtons: document.getElementById('authButtons'),
+                    authError: document.getElementById('authError'),
                     googleSignInBtn: document.getElementById('googleSignInBtn'),
                     hashLoginBtn: document.getElementById('hashLoginBtn'),
                     logoutBtn: document.getElementById('logoutBtn'),
@@ -450,23 +475,30 @@
                 };
             }
 
+            async _initializeAuth() {
+                try {
+                    await loadGoogleAuth();
+                    this._setupGoogleAuth();
+                    this.state.googleReady = true;
+                    this.elements.googleSignInBtn.classList.remove('hidden');
+                } catch (error) {
+                    console.warn("Google auth failed to load:", error);
+                    this.elements.authError.textContent = "Google Sign-In unavailable. Using password login.";
+                    this.elements.authError.classList.remove('hidden');
+                    this.state.googleReady = false;
+                }
+                this.checkAuthState();
+            }
+
             _setupGoogleAuth() {
                 google.accounts.id.initialize({
-                    client_id: '876594018968-45h7apue4le7vre10o5m62buushftq6t.apps.googleusercontent.comm',
+                    client_id: this.GOOGLE_CLIENT_ID,
                     callback: (response) => this._handleGoogleSignIn(response)
                 });
                 
-                // Check if user is already signed in
                 if (localStorage.getItem('googleAuthToken')) {
                     this._parseToken(localStorage.getItem('googleAuthToken'));
                 }
-            }
-
-            _handleGoogleSignIn(response) {
-                localStorage.setItem('googleAuthToken', response.credential);
-                this._parseToken(response.credential);
-                this.state.authMethod = 'google';
-                this.checkAuthState();
             }
 
             _parseToken(token) {
@@ -478,7 +510,7 @@
                         picture: payload.picture
                     };
                 } catch (error) {
-                    console.error('Error parsing token:', error);
+                    console.error("Error parsing token:", error);
                 }
             }
 
@@ -551,7 +583,9 @@
 
             hideAdminUI() {
                 this.elements.adminPanel.classList.add('hidden');
-                this.elements.googleSignInBtn.classList.remove('hidden');
+                if (this.state.googleReady) {
+                    this.elements.googleSignInBtn.classList.remove('hidden');
+                }
                 this.elements.hashLoginBtn.classList.remove('hidden');
                 this.elements.logoutBtn.classList.add('hidden');
             }
@@ -563,6 +597,17 @@
 
             hideLoginModal() {
                 this.elements.loginModal.classList.add('hidden');
+            }
+
+            showConfirmModal(title, message, action) {
+                this.elements.confirmTitle.textContent = title;
+                this.elements.confirmMessage.textContent = message;
+                this.elements.submitConfirmBtn.dataset.action = action;
+                this.elements.confirmModal.classList.remove('hidden');
+            }
+
+            hideConfirmModal() {
+                this.elements.confirmModal.classList.add('hidden');
             }
 
             async handleHashLogin() {
@@ -599,6 +644,13 @@
                 }
             }
 
+            _handleGoogleSignIn(response) {
+                localStorage.setItem('googleAuthToken', response.credential);
+                this._parseToken(response.credential);
+                this.state.authMethod = 'google';
+                this.checkAuthState();
+            }
+
             handleLogout() {
                 if (this.state.authMethod === 'google') {
                     google.accounts.id.disableAutoSelect();
@@ -614,7 +666,8 @@
                     totalEntries: 0,
                     editingId: null,
                     authMethod: null,
-                    authToken: null
+                    authToken: null,
+                    googleReady: this.state.googleReady
                 };
                 
                 this.hideAdminUI();
@@ -623,8 +676,237 @@
                 this.loadData();
             }
 
-            // [Keep all your existing data methods like loadData, handleAddEntry, etc.]
-            // ... (Include all the other methods from your previous implementation)
+            async loadData() {
+                this.showLoading(true);
+                
+                try {
+                    const response = await this.apiRequest('GET', {
+                        action: 'list',
+                        passwordHash: this.state.authToken
+                    });
+
+                    if (response.status === 'success') {
+                        this.state.totalEntries = response.data?.length || 0;
+                        this.renderEntries(response.data || []);
+                        this.updatePagination();
+                    } else {
+                        this.showError(response.message || 'Failed to load data');
+                    }
+                } catch (error) {
+                    this.showError('Failed to load data');
+                    console.error('Load error:', error);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            renderEntries(entries) {
+                if (!entries || entries.length === 0) {
+                    this.elements.leaderList.innerHTML = '<div class="empty-state">No entries found</div>';
+                    return;
+                }
+
+                this.elements.leaderList.innerHTML = entries.map((entry, index) => `
+                    <div class="entry" data-id="${index}">
+                        <div class="entry-date">${this.formatDate(entry[0])}</div>
+                        <div class="entry-content">
+                            <div class="entry-header">
+                                <div class="entry-leader">Leader: ${entry[1]}</div>
+                                ${this.state.isAdmin ? `
+                                <div class="entry-actions">
+                                    <button class="btn btn-primary btn-sm edit-btn">Edit</button>
+                                    <button class="btn btn-danger btn-sm delete-btn">Delete</button>
+                                </div>
+                                ` : ''}
+                            </div>
+                            <div class="entry-support">Support 1: ${entry[2]}</div>
+                            <div class="entry-support">Support 2: ${entry[3]}</div>
+                            <div class="entry-created">Created by: ${entry[4] || 'unknown'}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                if (this.state.isAdmin) {
+                    document.querySelectorAll('.edit-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const entryId = btn.closest('.entry').getAttribute('data-id');
+                            this.startEdit(entryId);
+                        });
+                    });
+
+                    document.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const entryId = btn.closest('.entry').getAttribute('data-id');
+                            this.confirmDelete(entryId);
+                        });
+                    });
+                }
+            }
+
+            async handleAddEntry() {
+                const leader = this.elements.leaderInput.value.trim();
+                const support1 = this.elements.support1Input.value.trim();
+                const support2 = this.elements.support2Input.value.trim();
+
+                if (!leader || !support1 || !support2) {
+                    this.showError('Please fill in all fields');
+                    return;
+                }
+
+                this.showLoading(true);
+                
+                try {
+                    const response = await this.apiRequest('POST', {
+                        action: 'create',
+                        leader,
+                        support1,
+                        support2,
+                        passwordHash: this.state.authToken
+                    });
+
+                    if (response.status === 'success') {
+                        this.showSuccess('Entry added successfully');
+                        this.clearForm();
+                        this.loadData();
+                    } else {
+                        this.showError(response.message || 'Failed to add entry');
+                    }
+                } catch (error) {
+                    this.showError('Failed to add entry');
+                    console.error('Add error:', error);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            startEdit(entryId) {
+                const entry = document.querySelector(`.entry[data-id="${entryId}"]`);
+                if (!entry) return;
+
+                const leader = entry.querySelector('.entry-leader').textContent.replace('Leader: ', '');
+                const support1 = entry.querySelectorAll('.entry-support')[0].textContent.replace('Support 1: ', '');
+                const support2 = entry.querySelectorAll('.entry-support')[1].textContent.replace('Support 2: ', '');
+
+                this.elements.leaderInput.value = leader;
+                this.elements.support1Input.value = support1;
+                this.elements.support2Input.value = support2;
+                this.state.editingId = entryId;
+
+                this.elements.addEntryBtn.classList.add('hidden');
+                this.elements.updateEntryBtn.classList.remove('hidden');
+                this.elements.cancelEditBtn.classList.remove('hidden');
+            }
+
+            async handleUpdateEntry() {
+                if (this.state.editingId === null) return;
+
+                const leader = this.elements.leaderInput.value.trim();
+                const support1 = this.elements.support1Input.value.trim();
+                const support2 = this.elements.support2Input.value.trim();
+
+                if (!leader || !support1 || !support2) {
+                    this.showError('Please fill in all fields');
+                    return;
+                }
+
+                this.showLoading(true);
+                
+                try {
+                    const response = await this.apiRequest('POST', {
+                        action: 'update',
+                        id: this.state.editingId,
+                        leader,
+                        support1,
+                        support2,
+                        passwordHash: this.state.authToken
+                    });
+
+                    if (response.status === 'success') {
+                        this.showSuccess('Entry updated successfully');
+                        this.cancelEdit();
+                        this.loadData();
+                    } else {
+                        this.showError(response.message || 'Failed to update entry');
+                    }
+                } catch (error) {
+                    this.showError('Failed to update entry');
+                    console.error('Update error:', error);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            cancelEdit() {
+                this.clearForm();
+                this.state.editingId = null;
+                this.elements.addEntryBtn.classList.remove('hidden');
+                this.elements.updateEntryBtn.classList.add('hidden');
+                this.elements.cancelEditBtn.classList.add('hidden');
+            }
+
+            confirmDelete(entryId) {
+                this.showConfirmModal(
+                    'Confirm Deletion',
+                    'Are you sure you want to delete this entry? This action cannot be undone.',
+                    'delete'
+                );
+                this.state.editingId = entryId;
+            }
+
+            async handleDelete(entryId) {
+                this.showLoading(true);
+                
+                try {
+                    const response = await this.apiRequest('POST', {
+                        action: 'delete',
+                        id: entryId,
+                        passwordHash: this.state.authToken
+                    });
+
+                    if (response.status === 'success') {
+                        this.showSuccess('Entry deleted successfully');
+                        this.hideConfirmModal();
+                        this.loadData();
+                    } else {
+                        this.showError(response.message || 'Failed to delete entry');
+                    }
+                } catch (error) {
+                    this.showError('Failed to delete entry');
+                    console.error('Delete error:', error);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            clearForm() {
+                this.elements.leaderInput.value = '';
+                this.elements.support1Input.value = '';
+                this.elements.support2Input.value = '';
+            }
+
+            updatePagination() {
+                const totalPages = Math.ceil(this.state.totalEntries / this.state.pageSize);
+                this.elements.pagination.classList.remove('hidden');
+                this.elements.pageInfo.textContent = `Page ${this.state.currentPage + 1} of ${totalPages}`;
+                this.elements.prevPageBtn.disabled = this.state.currentPage === 0;
+                this.elements.nextPageBtn.disabled = this.state.currentPage >= totalPages - 1;
+            }
+
+            prevPage() {
+                if (this.state.currentPage > 0) {
+                    this.state.currentPage--;
+                    this.loadData();
+                }
+            }
+
+            nextPage() {
+                if (this.state.currentPage < Math.floor(this.state.totalEntries / this.state.pageSize)) {
+                    this.state.currentPage++;
+                    this.loadData();
+                }
+            }
 
             async apiRequest(method, data) {
                 const options = {
@@ -634,7 +916,6 @@
                     }
                 };
 
-                // Add auth token based on method
                 if (this.state.authMethod === 'google' && localStorage.getItem('googleAuthToken')) {
                     options.headers['Authorization'] = `Bearer ${localStorage.getItem('googleAuthToken')}`;
                 } else if (this.state.authMethod === 'hash' && this.state.authToken) {
@@ -655,16 +936,11 @@
                     options.body = JSON.stringify(data);
                 }
 
-                try {
-                    const response = await fetch(url, options);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return await response.json();
-                } catch (error) {
-                    console.error('API Request failed:', error);
-                    throw error;
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                return await response.json();
             }
 
             showLoading(show, context = 'global') {
@@ -728,7 +1004,6 @@
             }
         }
 
-        // Initialize the app when the DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 window.app = new LeaderTrackerApp();
