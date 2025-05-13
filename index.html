@@ -53,6 +53,9 @@
     button:hover {
       background-color: #5f6f87;
     }
+    ul {
+      padding-left: 20px;
+    }
     .history-entry {
       margin-bottom: 10px;
       padding: 10px;
@@ -91,16 +94,9 @@
   </div>
 
   <script>
-    const correctPasswordHash = "77e9d03d2fa3fa2f24c1a02710b3566e337340e1ced5217bf863d8ea37f4658f"; // log123
-    const scriptURL = "https://script.google.com/macros/s/AKfycbx1yllX_4OCI74EVt59m4QqsF9ngQTtwCF3U8tCECvctM6GyCENdpUxZuSMEsIks89icQ/exec";
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbx1yllX_4OCI74EVt59m4QqsF9ngQTtwCF3U8tCECvctM6GyCENdpUxZuSMEsIks89icQ/exec";
 
-    async function hashPassword(password) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
+    let history = [];
 
     async function logConvoy() {
       const leader = document.getElementById('leaderName').value.trim();
@@ -109,104 +105,74 @@
       const today = new Date().toISOString().slice(0, 10);
 
       if (!leader || !c1 || !c2) {
-        alert('Please enter all names.');
+        alert('Please enter all three names.');
         return;
       }
 
       const password = prompt("Enter password to log this entry:");
       if (!password) return;
 
-      const hashed = await hashPassword(password);
-      if (hashed !== correctPasswordHash) {
-        alert("Incorrect password.");
-        return;
-      }
-
-      const postData = {
-        password: hashed,
-        date: today,
-        leader,
-        companion1: c1,
-        companion2: c2
-      };
-
       try {
-        const response = await fetch(scriptURL, {
+        const response = await fetch(webAppUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(postData)
+          body: JSON.stringify({
+            password: password,
+            date: today,
+            leader: leader,
+            companions: [c1, c2]
+          })
         });
 
         const result = await response.json();
-        if (result.status === "success") {
-          alert("Convoy logged successfully!");
-          renderToday(today, leader, [c1, c2]);
-          fetchHistory();
+
+        if (result.success) {
+          alert("Convoy saved!");
+          addToHistory({ date: today, leader, companions: [c1, c2] });
+          updateAssignment({ date: today, leader, companions: [c1, c2] });
+          document.getElementById('leaderName').value = '';
+          document.getElementById('companion1').value = '';
+          document.getElementById('companion2').value = '';
         } else {
-          alert("Server error: " + result.message);
+          alert("Error: " + result.message);
         }
-      } catch (error) {
-        console.error(error);
-        alert("Network error.");
+      } catch (e) {
+        alert("Network error. Please check connection or script URL.");
+        console.error(e);
       }
     }
 
-    function renderToday(date, leader, companions) {
+    function updateAssignment(entry) {
       const list = document.getElementById('convoyList');
       list.innerHTML = `
-        <li><strong>Date:</strong> ${date}</li>
-        <li><strong>Leader:</strong> ${leader}</li>
-        <li><strong>Companions:</strong> ${companions.join(', ')}</li>
+        <li><strong>Date:</strong> ${entry.date}</li>
+        <li><strong>Leader:</strong> ${entry.leader}</li>
+        <li><strong>Companions:</strong> ${entry.companions.join(', ')}</li>
       `;
     }
 
-    async function fetchHistory() {
-      try {
-        const res = await fetch(scriptURL);
-        const data = await res.json();
-        if (!Array.isArray(data)) return;
-        data.sort((a, b) => b.date.localeCompare(a.date));
-
-        const container = document.getElementById('assignmentHistory');
-        container.innerHTML = '';
-        data.forEach(entry => {
-          const div = document.createElement('div');
-          div.className = 'history-entry';
-          div.innerHTML = `
-            <strong>Date:</strong> ${entry.date} <br>
-            <strong>Leader:</strong> ${entry.leader} <br>
-            <strong>Companions:</strong> ${entry.companion1}, ${entry.companion2}
-          `;
-          container.appendChild(div);
-        });
-
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const todayEntry = data.find(e => e.date === todayStr);
-        if (todayEntry) {
-          renderToday(todayEntry.date, todayEntry.leader, [todayEntry.companion1, todayEntry.companion2]);
-        }
-        await fetch('https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    password: 'log123',
-    date: today,
-    leader,
-    companions: [c1, c2]
-  })
-});
-
-
-      } catch (err) {
-        console.error("Failed to fetch history:", err);
-      }
+    function addToHistory(entry) {
+      history.push(entry);
+      history.sort((a, b) => b.date.localeCompare(a.date));
+      renderHistory();
     }
 
-    fetchHistory();
+    function renderHistory() {
+      const container = document.getElementById('assignmentHistory');
+      container.innerHTML = '';
+      history.forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'history-entry';
+        div.innerHTML = `
+          <strong>Date:</strong> ${entry.date} <br>
+          <strong>Leader:</strong> ${entry.leader} <br>
+          <strong>Companions:</strong> ${entry.companions.join(', ')}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Optional: preload history from backend if needed
   </script>
 </body>
 </html>
-
-
