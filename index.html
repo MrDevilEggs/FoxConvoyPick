@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fox Train Convoy Assignment</title>
   <style>
     body {
@@ -53,6 +53,9 @@
     button:hover {
       background-color: #5f6f87;
     }
+    ul {
+      padding-left: 20px;
+    }
     .history-entry {
       margin-bottom: 10px;
       padding: 10px;
@@ -91,24 +94,38 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1yllX_4OCI74EVt59m4QqsF9ngQTtwCF3U8tCECvctM6GyCENdpUxZuSMEsIks89icQ/exec";
+    const correctPasswordHash = "3491d21f9820dd579b8652a37b9e88aef2c999865be8b2b7b2a3319f7dbea3a9"; // SHA-256 of "itsnotthatdeep2025"
+    let history = JSON.parse(localStorage.getItem('convoyHistory') || '[]');
 
-    function getTodayDate() {
-      return new Date().toISOString().slice(0, 10);
+    async function hashPassword(password) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
     async function logConvoy() {
       const leader = document.getElementById('leaderName').value.trim();
       const c1 = document.getElementById('companion1').value.trim();
       const c2 = document.getElementById('companion2').value.trim();
-      const today = getTodayDate();
+      const today = new Date().toISOString().slice(0, 10);
 
       if (!leader || !c1 || !c2) {
-        alert("Please fill all fields.");
+        alert('Please enter all three names.');
         return;
       }
 
-      const data = {
+      const password = prompt("Enter password to log this entry:");
+      if (!password) return;
+
+      const hashed = await hashPassword(password);
+      if (hashed !== correctPasswordHash) {
+        alert('Incorrect password.');
+        return;
+      }
+
+      const payload = {
         date: today,
         leader: leader,
         companion1: c1,
@@ -116,26 +133,31 @@
       };
 
       try {
-        const response = await fetch(SCRIPT_URL, {
-          method: "POST",
-          body: JSON.stringify(data),
+        await fetch('https://script.google.com/macros/s/AKfycbx1yllX_4OCI74EVt59m4QqsF9ngQTtwCF3U8tCECvctM6GyCENdpUxZuSMEsIks89icQ/exec', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json"
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
         });
 
-        if (response.ok) {
-          alert("Convoy logged successfully!");
-          fetchConvoys();
-          document.getElementById('leaderName').value = '';
-          document.getElementById('companion1').value = '';
-          document.getElementById('companion2').value = '';
-        } else {
-          alert("Failed to log convoy.");
-        }
-      } catch (err) {
-        console.error("Error submitting:", err);
-        alert("Network error.");
+        const entry = { date: today, leader, companions: [c1, c2] };
+        history = history.filter(e => e.date !== today);
+        history.push(entry);
+        history.sort((a, b) => b.date.localeCompare(a.date));
+        localStorage.setItem('convoyHistory', JSON.stringify(history));
+
+        renderHistory();
+        updateAssignment(entry);
+
+        document.getElementById('leaderName').value = '';
+        document.getElementById('companion1').value = '';
+        document.getElementById('companion2').value = '';
+
+        alert("Convoy logged successfully!");
+      } catch (error) {
+        console.error("Failed to send to Google Script:", error);
+        alert("Failed to log convoy. Network or server error.");
       }
     }
 
@@ -144,40 +166,31 @@
       list.innerHTML = `
         <li><strong>Date:</strong> ${entry.date}</li>
         <li><strong>Leader:</strong> ${entry.leader}</li>
-        <li><strong>Companions:</strong> ${entry.companion1}, ${entry.companion2}</li>
+        <li><strong>Companions:</strong> ${entry.companions.join(', ')}</li>
       `;
     }
 
-    async function fetchConvoys() {
-      try {
-        const res = await fetch(SCRIPT_URL);
-        const convoys = await res.json();
-        convoys.sort((a, b) => b.date.localeCompare(a.date));
-
-        const container = document.getElementById("assignmentHistory");
-        container.innerHTML = "";
-
-        convoys.forEach(entry => {
-          const div = document.createElement("div");
-          div.className = "history-entry";
-          div.innerHTML = `
-            <strong>Date:</strong> ${entry.date}<br>
-            <strong>Leader:</strong> ${entry.leader}<br>
-            <strong>Companions:</strong> ${entry.companion1}, ${entry.companion2}
-          `;
-          container.appendChild(div);
-        });
-
-        const today = getTodayDate();
-        const todayEntry = convoys.find(c => c.date === today);
-        if (todayEntry) updateAssignment(todayEntry);
-
-      } catch (err) {
-        console.error("Failed to load convoys:", err);
-      }
+    function renderHistory() {
+      history.sort((a, b) => b.date.localeCompare(a.date));
+      const container = document.getElementById('assignmentHistory');
+      container.innerHTML = '';
+      history.forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'history-entry';
+        div.innerHTML = `
+          <strong>Date:</strong> ${entry.date}<br>
+          <strong>Leader:</strong> ${entry.leader}<br>
+          <strong>Companions:</strong> ${entry.companions.join(', ')}
+        `;
+        container.appendChild(div);
+      });
     }
 
-    window.onload = fetchConvoys;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayEntry = history.find(h => h.date === todayStr);
+    if (todayEntry) updateAssignment(todayEntry);
+    renderHistory();
   </script>
 </body>
 </html>
+
