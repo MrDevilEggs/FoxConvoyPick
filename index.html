@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Fox Train Convoy Assignment</title>
   <style>
     body {
@@ -89,7 +89,8 @@
   </div>
 
   <script>
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbx1yllX_4OCI74EVt59m4QqsF9ngQTtwCF3U8tCECvctM6GyCENdpUxZuSMEsIks89icQ/exec";
+    // Your new Web App URL
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbzpJM4EPaFFR0fqZpPlRgSx6co-WMsX4Eox8Z2Ku1fxzFj5ibD3RkYkMjs8nOTKKvSqSg/exec";
     const expectedPassword = "log123";
     let history = [];
 
@@ -140,20 +141,25 @@
         return;
       }
 
-      // Use GET to avoid CORS issues
-      const params = new URLSearchParams();
-      params.append('password', password);
-      params.append('date', today);
-      params.append('leader', leader);
-      params.append('companions', JSON.stringify([c1, c2]));
+      // Build query string to avoid CORS preflight
+      const params = new URLSearchParams({
+        password,
+        date: today,
+        leader,
+        companions: JSON.stringify([c1, c2])
+      });
 
       try {
-        const response = await fetch(`${webAppUrl}?${params.toString()}`);
+        const response = await fetch(`${webAppUrl}?${params.toString()}`, {
+          method: 'GET'
+        });
         const result = await response.json();
+
         if (result.success) {
           alert('Convoy logged successfully!');
-          addToHistory({ date: today, leader, companions: [c1, c2] });
-          updateAssignment({ date: today, leader, companions: [c1, c2] });
+          const entry = { date: today, leader, companions: [c1, c2] };
+          addToHistory(entry);
+          updateAssignment(entry);
           document.getElementById('leaderName').value = '';
           document.getElementById('companion1').value = '';
           document.getElementById('companion2').value = '';
