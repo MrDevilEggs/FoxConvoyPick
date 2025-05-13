@@ -421,6 +421,19 @@
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
     <script>
+// Google Sign-In button handler
+document.getElementById('googleSignInBtn').addEventListener('click', function() {
+    if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.prompt();
+    } else {
+        console.error('Google Sign-In library not loaded');
+        document.getElementById('authError').textContent = 
+            'Google Sign-In failed to load. Please refresh or use password login.';
+        document.getElementById('authError').classList.remove('hidden');
+    }
+});
+</script>
+    <script>
         class LeaderTrackerApp {
             constructor() {
                 this.API_URL = 'https://script.google.com/macros/s/AKfycbxYTFtOn-R1i2CdLIXKY3r_J8OLXrjvGLDtXKTHPc9tW8CxHOglpMK7fN9xYTortfCA/exec';
