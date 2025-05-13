@@ -1,210 +1,142 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Leader Tracker</title>
   <style>
     body {
-      font-family: "Segoe UI", sans-serif;
-      background-color: #2c2f33;
-      color: #ffffff;
-      margin: 0;
-      padding: 20px;
+      font-family: Arial, sans-serif;
+      margin: 20px;
     }
-
-    h1, h2 {
-      text-align: center;
-      color: #ffffff;
-    }
-
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-      font-size: 16px;
-    }
-
-    input[type="text"], input[type="password"], input[type="date"] {
-      width: calc(100% - 22px);
-      background-color: #23272a;
-      color: #ffffff;
-    }
-
-    button {
-      background-color: #7289da;
-      color: #fff;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #5b6eae;
-    }
-
-    #admin {
-      background-color: #23272a;
+    #adminPanel {
+      display: none;
+      margin-top: 20px;
+      border: 1px solid #ccc;
       padding: 15px;
-      margin-top: 10px;
-      border-radius: 10px;
+      background-color: #f9f9f9;
     }
-
-    ul {
-      list-style: none;
-      padding: 0;
+    table {
+      margin-top: 20px;
+      border-collapse: collapse;
+      width: 100%;
     }
-
-    li {
-      background-color: #2c2f33;
-      border: 1px solid #444;
-      border-radius: 6px;
-      margin: 5px 0;
-      padding: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
     }
-
-    li button {
-      background-color: #ff5555;
-      padding: 6px 10px;
-    }
-
-    li button:hover {
-      background-color: #cc4444;
-    }
-
-    .form-section {
-      max-width: 500px;
-      margin: 0 auto;
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
   <h1>Leader Tracker</h1>
 
-  <div class="form-section">
-    <input type="password" id="password" placeholder="Admin Password"/>
+  <button onclick="toggleLogin()">Admin Login</button>
+
+  <div id="loginForm" class="hidden">
+    <input type="password" id="password" placeholder="Enter Password">
     <button onclick="authenticate()">Login</button>
   </div>
 
-  <div id="admin" class="form-section" style="display:none;">
-    <input type="date" id="date"/>
-    <input type="text" id="leader" placeholder="Leader"/>
-    <input type="text" id="support1" placeholder="Support 1"/>
-    <input type="text" id="support2" placeholder="Support 2"/>
+  <div id="adminPanel">
+    <h3>Add Entry</h3>
+    <input type="text" id="leader" placeholder="Leader Name"><br><br>
+    <input type="text" id="support1" placeholder="Support 1"><br><br>
+    <input type="text" id="support2" placeholder="Support 2"><br><br>
     <button onclick="addEntry()">Add Entry</button>
-    <button onclick="clearAll()">Clear All</button>
   </div>
 
-  <h2>History</h2>
-  <ul id="entryList" class="form-section"></ul>
+  <h2>All Entries</h2>
+  <table id="entryTable">
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Leader</th>
+        <th>Support 1</th>
+        <th>Support 2</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbykiEpKWJSpWRlrITWMMjzYkKbjpXzhOTJNvRbNxRLqCHE2PbBtwQsKFouu_zMQdIat/exec';
+    const scriptURL = "https://script.google.com/macros/s/AKfycbykiEpKWJSpWRlrITWMMjzYkKbjpXzhOTJNvRbNxRLqCHE2PbBtwQsKFouu_zMQdIat/exec";
+    const passwordPlain = "NotThatDeep";
     let passwordHash = "";
 
-    async function hashPassword(pw) {
-      const data = new TextEncoder().encode(pw);
-      const hash = await crypto.subtle.digest('SHA-256', data);
-      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    function toggleLogin() {
+      document.getElementById('loginForm').classList.toggle('hidden');
     }
 
     async function authenticate() {
-      const pw = document.getElementById('password').value;
-      passwordHash = await hashPassword(pw);
-      loadEntries();
-      document.getElementById('admin').style.display = 'block';
-    }
+      const inputPassword = document.getElementById("password").value;
+      const hashed = await sha256(inputPassword);
+      const expected = await sha256(passwordPlain);
 
-    async function addEntry() {
-  const leader = document.getElementById('leader').value.trim();
-  const support1 = document.getElementById('support1').value.trim();
-  const support2 = document.getElementById('support2').value.trim();
-
-  if (!leader || !support1 || !support2) {
-    alert("All fields must be filled.");
-    return;
-  }
-
-  const res = await fetch(scriptURL, {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'add',
-      leader,
-      support1,
-      support2,
-      passwordHash,
-    }),
-  });
-
-  const result = await res.json();
-  console.log("Add entry response:", result);
-
-  if (result.status === 'success') {
-    alert("Entry added!");
-    loadEntries(); // Refresh list
-  } else {
-    alert("Failed to add entry: " + result.message);
-  }
-}
-
-
-      const result = await res.json();
-      if (result.status === 'success') loadEntries();
-      else alert('Error: ' + result.message);
-    }
-
-    async function loadEntries() {
-      const res = await fetch(scriptURL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'get', passwordHash }),
-      });
-
-      const result = await res.json();
-      const list = document.getElementById('entryList');
-      list.innerHTML = '';
-
-      if (result.status === 'success') {
-        result.entries.forEach(entry => {
-          const li = document.createElement('li');
-          li.textContent = `${entry.date}: ${entry.leader} [${entry.support1}, ${entry.support2}]`;
-
-          const delBtn = document.createElement('button');
-          delBtn.textContent = 'Delete';
-          delBtn.onclick = () => deleteEntry(entry.timestamp);
-          li.appendChild(delBtn);
-
-          list.appendChild(li);
-        });
+      if (hashed === expected) {
+        passwordHash = hashed;
+        document.getElementById("adminPanel").style.display = "block";
+        document.getElementById("loginForm").classList.add("hidden");
+        alert("Login successful.");
       } else {
-        alert('Failed to load entries: ' + result.message);
+        alert("Incorrect password.");
       }
     }
 
-    async function deleteEntry(timestamp) {
-      if (!confirm('Delete this entry?')) return;
-      const res = await fetch(scriptURL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'delete', passwordHash, timestamp }),
-      });
-      const result = await res.json();
-      if (result.status === 'success') loadEntries();
+    async function sha256(str) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    async function clearAll() {
-      if (!confirm('Clear all data?')) return;
-      const res = await fetch(scriptURL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'clear', passwordHash }),
+    async function addEntry() {
+      const leader = document.getElementById("leader").value.trim();
+      const support1 = document.getElementById("support1").value.trim();
+      const support2 = document.getElementById("support2").value.trim();
+
+      if (!leader || !support1 || !support2) {
+        alert("All fields are required.");
+        return;
+      }
+
+      const response = await fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "add",
+          leader,
+          support1,
+          support2,
+          passwordHash
+        }),
       });
-      const result = await res.json();
-      if (result.status === 'success') loadEntries();
+
+      const result = await response.json();
+      if (result.status === "success") {
+        alert("Entry added.");
+        loadEntries();
+      } else {
+        alert("Error: " + result.message);
+      }
     }
 
-    window.onload = () => {
-      document.getElementById('date').value = new Date().toISOString().split('T')[0];
-    };
+    async function loadEntries() {
+      const response = await fetch(scriptURL + "?action=get");
+      const data = await response.json();
+      const tbody = document.querySelector("#entryTable tbody");
+      tbody.innerHTML = "";
+
+      data.entries.forEach(entry => {
+        const row = `<tr>
+          <td>${entry.timestamp}</td>
+          <td>${entry.leader}</td>
+          <td>${entry.support1}</td>
+          <td>${entry.support2}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    loadEntries();
   </script>
 </body>
 </html>
