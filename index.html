@@ -118,22 +118,37 @@
     }
 
     async function addEntry() {
-      const date = document.getElementById('date').value;
-      const leader = document.getElementById('leader').value;
-      const support1 = document.getElementById('support1').value;
-      const support2 = document.getElementById('support2').value;
-      const timestamp = Date.now();
+  const leader = document.getElementById('leader').value.trim();
+  const support1 = document.getElementById('support1').value.trim();
+  const support2 = document.getElementById('support2').value.trim();
 
-      const res = await fetch(scriptURL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'add',
-          passwordHash,
-          date: new Date(date).toLocaleDateString(),
-          timestamp,
-          leader, support1, support2
-        }),
-      });
+  if (!leader || !support1 || !support2) {
+    alert("All fields must be filled.");
+    return;
+  }
+
+  const res = await fetch(scriptURL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'add',
+      leader,
+      support1,
+      support2,
+      passwordHash,
+    }),
+  });
+
+  const result = await res.json();
+  console.log("Add entry response:", result);
+
+  if (result.status === 'success') {
+    alert("Entry added!");
+    loadEntries(); // Refresh list
+  } else {
+    alert("Failed to add entry: " + result.message);
+  }
+}
+
 
       const result = await res.json();
       if (result.status === 'success') loadEntries();
