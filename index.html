@@ -426,7 +426,8 @@
                     editingId: null,
                     authMethod: null,
                     authToken: null,
-                    googleReady: false
+                    googleReady: false,
+                    entries: []
                 };
 
                 this.elements = this._initElements();
@@ -470,7 +471,6 @@
 
             async _initializeAuth() {
                 try {
-                    // Wait for Google auth to load
                     await new Promise((resolve) => {
                         const check = () => {
                             if (window.google && google.accounts) {
@@ -512,7 +512,6 @@
             }
 
             _setupEventListeners() {
-                // Google Sign-In button
                 this.elements.googleSignInBtn.addEventListener('click', () => {
                     if (window.google?.accounts?.id) {
                         google.accounts.id.prompt();
@@ -521,7 +520,6 @@
                     }
                 });
 
-                // Password login
                 this.elements.hashLoginBtn.addEventListener('click', () => this.showLoginModal());
                 this.elements.logoutBtn.addEventListener('click', () => this.handleLogout());
                 this.elements.submitLoginBtn.addEventListener('click', () => this.handleHashLogin());
@@ -530,17 +528,14 @@
                     if (e.key === 'Enter') this.handleHashLogin();
                 });
 
-                // Entry management
                 this.elements.addEntryBtn.addEventListener('click', () => this.handleAddEntry());
                 this.elements.updateEntryBtn.addEventListener('click', () => this.handleUpdateEntry());
                 this.elements.cancelEditBtn.addEventListener('click', () => this.cancelEdit());
 
-                // Data actions
                 this.elements.refreshBtn.addEventListener('click', () => this.loadData());
                 this.elements.prevPageBtn.addEventListener('click', () => this.prevPage());
                 this.elements.nextPageBtn.addEventListener('click', () => this.nextPage());
 
-                // Confirmation modal
                 this.elements.cancelConfirmBtn.addEventListener('click', () => this.hideConfirmModal());
                 this.elements.submitConfirmBtn.addEventListener('click', () => {
                     if (this.elements.submitConfirmBtn.dataset.action === 'delete') {
@@ -564,7 +559,7 @@
                     if (response && response.valid) {
                         this.state.isAdmin = true;
                         this.showAdminUI();
-                        this.loadData();
+                        await this.loadData(); // Added await to ensure data loads
                     } else {
                         this.handleLogout();
                     }
@@ -620,25 +615,26 @@
                 this.showLoading(true, 'login');
                 
                 try {
-                    const passwordHash = sha256(password).toLowerCase();
+                    // FIX: Properly calculate SHA-256 hash
+                    const passwordHash = sha256(password).toString();
                     const response = await this.apiRequest('GET', {
                         action: 'verify',
                         passwordHash: passwordHash
                     });
 
-                    if (response.valid) {
+                    if (response && response.valid) {
                         this.state.authToken = passwordHash;
                         this.state.authMethod = 'hash';
                         localStorage.setItem('authToken', passwordHash);
-                        this.checkAuthState();
+                        await this.checkAuthState(); // Added await
                         this.hideLoginModal();
                         this.showSuccess('Logged in successfully');
                     } else {
-                        this.showError('Invalid password');
+                        this.showError(response?.message || 'Invalid password');
                     }
                 } catch (error) {
-                    this.showError('Login failed. Please try again.');
                     console.error("Login error:", error);
+                    this.showError('Login failed. Please try again. ' + error.message);
                 } finally {
                     this.showLoading(false, 'login');
                 }
@@ -679,21 +675,29 @@
                 this.showLoading(true);
                 
                 try {
-                    const response = await this.apiRequest('GET', {
-                        action: 'list',
-                        passwordHash: this.state.authToken
-                    });
+                    const params = {
+                        action: 'list'
+                    };
 
-                    if (response.status === 'success') {
-                        this.state.totalEntries = response.data?.length || 0;
-                        this.renderEntries(response.data || []);
+                    if (this.state.authMethod === 'google' && localStorage.getItem('googleAuthToken')) {
+                        params.token = localStorage.getItem('googleAuthToken');
+                    } else if (this.state.authMethod === 'hash' && this.state.authToken) {
+                        params.passwordHash = this.state.authToken;
+                    }
+
+                    const response = await this.apiRequest('GET', params);
+
+                    if (response && response.status === 'success') {
+                        this.state.entries = response.data || [];
+                        this.state.totalEntries = this.state.entries.length;
+                        this.renderEntries(this.state.entries);
                         this.updatePagination();
                     } else {
-                        this.showError(response.message || 'Failed to load data');
+                        this.showError(response?.message || 'Failed to load data');
                     }
                 } catch (error) {
-                    this.showError('Failed to load data');
                     console.error('Load error:', error);
+                    this.showError('Failed to load data: ' + error.message);
                 } finally {
                     this.showLoading(false);
                 }
@@ -768,7 +772,7 @@
                     if (response.status === 'success') {
                         this.showSuccess('Entry added successfully');
                         this.clearForm();
-                        this.loadData();
+                        await this.loadData(); // Added await
                     } else {
                         this.showError(response.message || 'Failed to add entry');
                     }
@@ -825,7 +829,7 @@
                     if (response.status === 'success') {
                         this.showSuccess('Entry updated successfully');
                         this.cancelEdit();
-                        this.loadData();
+                        await this.loadData(); // Added await
                     } else {
                         this.showError(response.message || 'Failed to update entry');
                     }
@@ -867,7 +871,7 @@
                     if (response.status === 'success') {
                         this.showSuccess('Entry deleted successfully');
                         this.hideConfirmModal();
-                        this.loadData();
+                        await this.loadData(); // Added await
                     } else {
                         this.showError(response.message || 'Failed to delete entry');
                     }
@@ -915,12 +919,6 @@
                     }
                 };
 
-                if (this.state.authMethod === 'google' && localStorage.getItem('googleAuthToken')) {
-                    options.headers['Authorization'] = `Bearer ${localStorage.getItem('googleAuthToken')}`;
-                } else if (this.state.authMethod === 'hash' && this.state.authToken) {
-                    data.passwordHash = this.state.authToken;
-                }
-
                 let url = this.API_URL;
                 
                 if (method === 'GET') {
@@ -935,11 +933,16 @@
                     options.body = JSON.stringify(data);
                 }
 
-                const response = await fetch(url, options);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error('API request failed:', error);
+                    throw error;
                 }
-                return await response.json();
             }
 
             showLoading(show, context = 'global') {
