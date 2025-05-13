@@ -1,444 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord Leader Tracker</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --discord-blurple: #5865F2;
-            --discord-green: #57F287;
-            --discord-yellow: #FEE75C;
-            --discord-red: #ED4245;
-            --discord-dark: #2C2F33;
-            --discord-darker: #23272A;
-            --discord-light: #FFFFFF;
-            --discord-gray: #99AAB5;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leader Tracker</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #2c2f33;
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Roboto', sans-serif;
-        }
+    h1, h2 {
+      text-align: center;
+      color: #ffffff;
+    }
 
-        body {
-            background-color: var(--discord-dark);
-            color: var(--discord-light);
-            line-height: 1.6;
-        }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      border: none;
+      font-size: 16px;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+    input[type="text"], input[type="password"], input[type="date"] {
+      width: calc(100% - 22px);
+      background-color: #23272a;
+      color: #ffffff;
+    }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid var(--discord-blurple);
-        }
+    button {
+      background-color: #7289da;
+      color: #fff;
+      cursor: pointer;
+    }
 
-        h1, h2 {
-            color: var(--discord-blurple);
-        }
+    button:hover {
+      background-color: #5b6eae;
+    }
 
-        .admin-btn {
-            background-color: var(--discord-blurple);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2s;
-        }
+    #admin {
+      background-color: #23272a;
+      padding: 15px;
+      margin-top: 10px;
+      border-radius: 10px;
+    }
 
-        .admin-btn:hover {
-            background-color: #4752C4;
-        }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
 
-        .admin-panel {
-            background-color: var(--discord-darker);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+    li {
+      background-color: #2c2f33;
+      border: 1px solid #444;
+      border-radius: 6px;
+      margin: 5px 0;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-        .admin-panel.hidden {
-            display: none;
-        }
+    li button {
+      background-color: #ff5555;
+      padding: 6px 10px;
+    }
 
-        .admin-input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            border: 1px solid var(--discord-gray);
-            background-color: var(--discord-dark);
-            color: var(--discord-light);
-        }
+    li button:hover {
+      background-color: #cc4444;
+    }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--discord-gray);
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid var(--discord-gray);
-            background-color: var(--discord-dark);
-            color: var(--discord-light);
-        }
-
-        .date-input {
-            background-color: var(--discord-dark);
-            color: var(--discord-light);
-            border: 1px solid var(--discord-gray);
-            padding: 8px;
-            border-radius: 4px;
-        }
-
-        .submit-btn {
-            background-color: var(--discord-green);
-            color: var(--discord-darker);
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            margin-right: 10px;
-            transition: background-color 0.2s;
-        }
-
-        .submit-btn:hover {
-            background-color: #4ADB7F;
-        }
-
-        .danger-btn {
-            background-color: var(--discord-red);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2s;
-        }
-
-        .danger-btn:hover {
-            background-color: #D63A3D;
-        }
-
-        .leader-board {
-            background-color: var(--discord-darker);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .leader-list {
-            margin-top: 20px;
-        }
-
-        .leader-entry {
-            background-color: var(--discord-dark);
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            border-left: 4px solid var(--discord-blurple);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .entry-date {
-            color: var(--discord-gray);
-            font-size: 0.9rem;
-        }
-
-        .entry-content {
-            flex-grow: 1;
-            margin-left: 15px;
-        }
-
-        .entry-leader {
-            color: var(--discord-blurple);
-            font-weight: 500;
-        }
-
-        .entry-support {
-            color: var(--discord-light);
-        }
-
-        .delete-btn {
-            background-color: var(--discord-red);
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
-            font-size: 0.8rem;
-        }
-
-        .delete-btn:hover {
-            background-color: #D63A3D;
-        }
-
-        .no-entries {
-            color: var(--discord-gray);
-            text-align: center;
-            padding: 20px;
-        }
-
-        @media (max-width: 600px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        
-            .admin-btn {
-                margin-top: 10px;
-            }
-        
-            .leader-entry {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        
-            .entry-content {
-                margin-left: 0;
-                margin-top: 10px;
-            }
-        
-            .delete-btn {
-                margin-left: 0;
-                margin-top: 10px;
-            }
-        }
-    </style>
+    .form-section {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>Daily Leader Tracker</h1>
-            <button id="adminBtn" class="admin-btn">Admin Login</button>
-        </header>
+  <h1>Leader Tracker</h1>
 
-        <div id="adminPanel" class="admin-panel hidden">
-            <h2>Admin Controls</h2>
-            <input type="password" id="adminPassword" placeholder="Enter admin password" class="admin-input">
-            <button id="submitPassword" class="submit-btn">Authenticate</button>
-            <div id="adminControls" class="admin-controls hidden">
-                <div class="form-group">
-                    <label for="entryDate">Date:</label>
-                    <input type="date" id="entryDate" class="date-input">
-                </div>
-                <div class="form-group">
-                    <label for="leader">Leader:</label>
-                    <input type="text" id="leader" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="support1">Support 1:</label>
-                    <input type="text" id="support1" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="support2">Support 2:</label>
-                    <input type="text" id="support2" class="form-input" required>
-                </div>
-                <button id="addEntry" class="submit-btn">Add Team</button>
-                <button id="clearData" class="danger-btn">Clear All Data</button>
-            </div>
-        </div>
+  <div class="form-section">
+    <input type="password" id="password" placeholder="Admin Password"/>
+    <button onclick="authenticate()">Login</button>
+  </div>
 
-        <main class="leader-board">
-            <h2>Leader History</h2>
-            <div id="leaderList" class="leader-list">
-                <!-- Entries will be added here dynamically -->
-            </div>
-        </main>
-    </div>
+  <div id="admin" class="form-section" style="display:none;">
+    <input type="date" id="date"/>
+    <input type="text" id="leader" placeholder="Leader"/>
+    <input type="text" id="support1" placeholder="Support 1"/>
+    <input type="text" id="support2" placeholder="Support 2"/>
+    <button onclick="addEntry()">Add Entry</button>
+    <button onclick="clearAll()">Clear All</button>
+  </div>
 
-    <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbykiEpKWJSpWRlrITWMMjzYkKbjpXzhOTJNvRbNxRLqCHE2PbBtwQsKFouu_zMQdIat/exec";
-    const HASHED_PASSWORD = "a5d5d3f0e7b9a3a9e0f7d3b7c3e3d3a5d5d3f0e7b9a3a9e0f7d3b7c3e3d3a5d5d3f0e7b9a3a9e0f7d3b7c3e3d3a5";
+  <h2>History</h2>
+  <ul id="entryList" class="form-section"></ul>
 
-    const adminBtn = document.getElementById('adminBtn');
-    const adminPanel = document.getElementById('adminPanel');
-    const adminPassword = document.getElementById('adminPassword');
-    const submitPassword = document.getElementById('submitPassword');
-    const adminControls = document.getElementById('adminControls');
-    const addEntryBtn = document.getElementById('addEntry');
-    const clearDataBtn = document.getElementById('clearData');
-    const entryDateInput = document.getElementById('entryDate');
-    const leaderInput = document.getElementById('leader');
-    const support1Input = document.getElementById('support1');
-    const support2Input = document.getElementById('support2');
-    const leaderList = document.getElementById('leaderList');
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbykiEpKWJSpWRlrITWMMjzYkKbjpXzhOTJNvRbNxRLqCHE2PbBtwQsKFouu_zMQdIat/exec';
+    let passwordHash = '';
 
-    let isAdmin = false;
-
-    async function hashPassword(password) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
+    async function hashPassword(pw) {
+      const data = new TextEncoder().encode(pw);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function init() {
-        const today = new Date().toISOString().split('T')[0];
-        entryDateInput.value = today;
-        loadEntries();
-        setupEventListeners();
+    async function authenticate() {
+      const pw = document.getElementById('password').value;
+      passwordHash = await hashPassword(pw);
+      loadEntries();
+      document.getElementById('admin').style.display = 'block';
     }
 
-    function setupEventListeners() {
-        adminBtn.addEventListener('click', toggleAdminPanel);
-        submitPassword.addEventListener('click', authenticateAdmin);
-        addEntryBtn.addEventListener('click', addNewEntry);
-        clearDataBtn.addEventListener('click', clearAllData);
+    async function addEntry() {
+      const date = document.getElementById('date').value;
+      const leader = document.getElementById('leader').value;
+      const support1 = document.getElementById('support1').value;
+      const support2 = document.getElementById('support2').value;
+      const timestamp = Date.now();
+
+      const res = await fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'add',
+          passwordHash,
+          date: new Date(date).toLocaleDateString(),
+          timestamp,
+          leader, support1, support2
+        }),
+      });
+
+      const result = await res.json();
+      if (result.status === 'success') loadEntries();
+      else alert('Error: ' + result.message);
     }
 
-    function toggleAdminPanel() {
-        adminPanel.classList.toggle('hidden');
-        if (adminPanel.classList.contains('hidden')) {
-            isAdmin = false;
-            adminControls.classList.add('hidden');
-            adminPassword.value = '';
-        }
-    }
+    async function loadEntries() {
+      const res = await fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'get', passwordHash }),
+      });
 
-    async function authenticateAdmin() {
-        const inputHash = await hashPassword(adminPassword.value);
-        if (inputHash === HASHED_PASSWORD) {
-            isAdmin = true;
-            adminControls.classList.remove('hidden');
-            adminPassword.value = '';
-            loadEntries();
-        } else {
-            alert('Incorrect password!');
-            adminPassword.value = '';
-        }
-    }
+      const result = await res.json();
+      const list = document.getElementById('entryList');
+      list.innerHTML = '';
 
-    async function addNewEntry() {
-        const leader = leaderInput.value.trim();
-        const support1 = support1Input.value.trim();
-        const support2 = support2Input.value.trim();
-        const selectedDate = entryDateInput.value;
+      if (result.status === 'success') {
+        result.entries.forEach(entry => {
+          const li = document.createElement('li');
+          li.textContent = `${entry.date}: ${entry.leader} [${entry.support1}, ${entry.support2}]`;
 
-        if (!leader || !support1 || !support2 || !selectedDate) {
-            alert('Please fill in all fields!');
-            return;
-        }
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.onclick = () => deleteEntry(entry.timestamp);
+          li.appendChild(delBtn);
 
-        const response = await fetch(WEB_APP_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                action: "add",
-                passwordHash: HASHED_PASSWORD,
-                date: selectedDate,
-                leader,
-                support1,
-                support2
-            })
+          list.appendChild(li);
         });
-
-        const result = await response.json();
-        if (result.success) {
-            leaderInput.value = '';
-            support1Input.value = '';
-            support2Input.value = '';
-            loadEntries();
-        } else {
-            alert("Failed to add entry.");
-        }
+      } else {
+        alert('Failed to load entries: ' + result.message);
+      }
     }
 
-    await fetch(WEB_APP_URL, {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-        action: "add",  // or "get", or "clear"
-        passwordHash: HASHED_PASSWORD,
-        ...
-    })
-});
-
-
-        const result = await response.json();
-        leaderList.innerHTML = '';
-
-        if (!result.success || result.entries.length === 0) {
-            leaderList.innerHTML = '<p class="no-entries">No entries yet. Check back later!</p>';
-            return;
-        }
-
-        result.entries.forEach((entry, index) => {
-            const dateString = new Date(entry.timestamp).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'long'
-            });
-
-            const entryElement = document.createElement('div');
-            entryElement.className = 'leader-entry';
-            entryElement.innerHTML = `
-                <div class="entry-date">${dateString}</div>
-                <div class="entry-content">
-                    <div class="entry-leader">Leader: ${entry.leader}</div>
-                    <div class="entry-support">Support 1: ${entry.support1}</div>
-                    <div class="entry-support">Support 2: ${entry.support2}</div>
-                </div>
-            `;
-            leaderList.appendChild(entryElement);
-        });
+    async function deleteEntry(timestamp) {
+      if (!confirm('Delete this entry?')) return;
+      const res = await fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete', passwordHash, timestamp }),
+      });
+      const result = await res.json();
+      if (result.status === 'success') loadEntries();
     }
 
-    async function clearAllData() {
-        if (!isAdmin) return;
-        if (!confirm('Are you sure you want to delete ALL entries? This cannot be undone!')) return;
-
-        const response = await fetch(WEB_APP_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                action: "clear",
-                passwordHash: HASHED_PASSWORD
-            })
-        });
-
-        const result = await response.json();
-        if (result.success) {
-            loadEntries();
-        } else {
-            alert("Failed to clear entries.");
-        }
+    async function clearAll() {
+      if (!confirm('Clear all data?')) return;
+      const res = await fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'clear', passwordHash }),
+      });
+      const result = await res.json();
+      if (result.status === 'success') loadEntries();
     }
 
-    document.addEventListener('DOMContentLoaded', init);
-</script>
-
-
-    
+    window.onload = () => {
+      document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    };
+  </script>
 </body>
 </html>
