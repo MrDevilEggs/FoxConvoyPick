@@ -373,183 +373,102 @@
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
     
- <script>
-        class LeaderTrackerApp {
-            constructor() {
-                // Initialize with your specific script URL
-                this.API_URL = 'https://script.google.com/macros/s/AKfycbyPjRD5VygOLikSy1sNx-JnXmwg2F1oooRfg7RzPr8jT8D_yKkI_EEKB0YBk3hNlHfo/exec';
-                
-                // Initialize state
-                this.state = {
-                    isAdmin: false,
-                    currentPage: 0,
-                    pageSize: 10,
-                    totalEntries: 0,
-                    editingId: null,
-                    authToken: localStorage.getItem('authToken') || null
-                };
+<script>
+class LeaderTrackerApp {
+    constructor() {
+        this.API_URL = 'https://script.google.com/macros/s/AKfycbyPjRD5VygOLikSy1sNx-JnXmwg2F1oooRfg7RzPr8jT8D_yKkI_EEKB0YBk3hNlHfo/exec';
+        this.state = {
+            isAdmin: false,
+            currentPage: 0,
+            pageSize: 10,
+            totalEntries: 0,
+            editingId: null,
+            authToken: localStorage.getItem('authToken') || null
+        };
+        this.elements = this._initElements();
+        this._setupEventListeners();
+        this.checkAuthState(); // Now properly defined below
+    }
 
-                // Initialize DOM elements
-                this.elements = this._initElements();
-                
-                // Setup event listeners
-                this._setupEventListeners();
-                
-                // Load initial data
-                this.checkAuthState();
-                this.loadData();
-            }
-
-            _initElements() {
-                return {
-                    authButtons: document.getElementById('authButtons'),
-                    loginBtn: document.getElementById('loginBtn'),
-                    adminPanel: document.getElementById('adminPanel'),
-                    leaderList: document.getElementById('leaderList'),
-                    // [Include all other element references...]
-                    passwordInput: document.getElementById('password')
-                };
-            }
-
-            _setupEventListeners() {
-                // Authentication
-                this.elements.loginBtn.addEventListener('click', () => this.showLoginModal());
-                
-                // Form actions
-                this.elements.addEntryBtn?.addEventListener('click', () => this.handleAddEntry());
-                
-                // [Add all other event listeners...]
-            }
-
-            // Core Methods
-            async loadData() {
-                try {
-                    const response = await this._apiRequest('GET', {
-                        passwordHash: this.state.authToken
-                    });
-                    
-                    if (response.error) {
-                        this.showError(response.error);
-                        return;
+    // AUTHENTICATION METHODS
+    checkAuthState() {
+        if (this.state.authToken) {
+            // Verify the token is valid by making an API call
+            this._verifyAuthToken(this.state.authToken)
+                .then(isValid => {
+                    this.state.isAdmin = isValid;
+                    if (isValid) {
+                        this.showAdminUI();
                     }
-                    
-                    this.renderEntries(response.data || []);
-                } catch (error) {
-                    this.showError('Failed to load data');
-                    console.error('Load error:', error);
-                }
-            }
-
-            async handleAddEntry() {
-                const entryData = {
-                    leader: this.elements.leaderInput.value.trim(),
-                    support1: this.elements.support1Input.value.trim(),
-                    support2: this.elements.support2Input.value.trim(),
-                    passwordHash: this.state.authToken
-                };
-
-                try {
-                    const response = await this._apiRequest('POST', {
-                        action: 'create',
-                        ...entryData
-                    });
-
-                    if (response.status === 'success') {
-                        this.showSuccess('Entry added successfully');
-                        this.clearForm();
-                        this.loadData();
-                    } else {
-                        this.showError(response.message || 'Failed to add entry');
-                    }
-                } catch (error) {
-                    this.showError('Network error - please try again');
-                    console.error('Add entry error:', error);
-                }
-            }
-
-            // Helper Methods
-            async _apiRequest(method, data) {
-                const options = {
-                    method: method === 'GET' ? 'GET' : 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                };
-
-                const url = method === 'GET' 
-                    ? `${this.API_URL}?${new URLSearchParams(data)}`
-                    : this.API_URL;
-
-                if (method !== 'GET') {
-                    options.body = JSON.stringify(data);
-                }
-
-                const response = await fetch(url, options);
-                return await response.json();
-            }
-
-            showSuccess(message) {
-                Toastify({
-                    text: message,
-                    duration: 3000,
-                    close: true,
-                    gravity: 'top',
-                    position: 'right',
-                    backgroundColor: '#57F287',
-                    stopOnFocus: true
-                }).showToast();
-            }
-
-            showError(message) {
-                Toastify({
-                    text: message,
-                    duration: 3000,
-                    close: true,
-                    gravity: 'top',
-                    position: 'right',
-                    backgroundColor: '#ED4245',
-                    stopOnFocus: true
-                }).showToast();
-            }
-
-            clearForm() {
-                this.elements.leaderInput.value = '';
-                this.elements.support1Input.value = '';
-                this.elements.support2Input.value = '';
-            }
-
-            // [Include all your other methods...]
+                })
+                .catch(error => {
+                    console.error("Auth verification failed:", error);
+                    this.handleLogout();
+                });
+        } else {
+            this.state.isAdmin = false;
+            this.hideAdminUI();
         }
+    }
 
-        // Initialize the app with error handling
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                // Verify required elements exist
-                if (!document.getElementById('authButtons') || !document.getElementById('leaderList')) {
-                    throw new Error('Required page elements are missing');
-                }
-                
-                new LeaderTrackerApp();
-            } catch (error) {
-                console.error('Initialization failed:', error);
-                const errorDiv = document.createElement('div');
-                errorDiv.style.padding = '20px';
-                errorDiv.style.background = '#ED4245';
-                errorDiv.style.color = 'white';
-                errorDiv.style.margin = '20px';
-                errorDiv.style.borderRadius = '4px';
-                errorDiv.innerHTML = `
-                    <h3>Application Error</h3>
-                    <p>${error.message || 'Initialization failed'}</p>
-                    <button onclick="window.location.reload()" 
-                            style="margin-top: 10px; padding: 8px 16px; background: white; border: none; border-radius: 4px;">
-                        Refresh Page
-                    </button>
-                `;
-                document.body.prepend(errorDiv);
-            }
-        });
-    </script>
+    async _verifyAuthToken(token) {
+        try {
+            const response = await this._apiRequest('GET', {
+                passwordHash: token,
+                action: 'verify'
+            });
+            return response.status === 'success';
+        } catch (error) {
+            console.error("Token verification error:", error);
+            return false;
+        }
+    }
+
+    showAdminUI() {
+        this.elements.adminPanel.classList.remove('hidden');
+        this.elements.loginBtn.classList.add('hidden');
+        
+        if (!this.elements.logoutBtn) {
+            this.elements.logoutBtn = document.createElement('button');
+            this.elements.logoutBtn.className = 'btn btn-danger';
+            this.elements.logoutBtn.textContent = 'Logout';
+            this.elements.logoutBtn.addEventListener('click', () => this.handleLogout());
+            this.elements.authButtons.appendChild(this.elements.logoutBtn);
+        }
+        this.elements.logoutBtn.classList.remove('hidden');
+    }
+
+    hideAdminUI() {
+        this.elements.adminPanel.classList.add('hidden');
+        this.elements.loginBtn.classList.remove('hidden');
+        if (this.elements.logoutBtn) {
+            this.elements.logoutBtn.classList.add('hidden');
+        }
+    }
+
+    handleLogout() {
+        this.state.authToken = null;
+        localStorage.removeItem('authToken');
+        this.state.isAdmin = false;
+        this.hideAdminUI();
+        this.showSuccess('Logged out successfully');
+        this.cancelEdit();
+        this.loadData();
+    }
+
+    // [Include all your other existing methods...]
+    // _initElements, _setupEventListeners, loadData, handleAddEntry, etc.
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        new LeaderTrackerApp();
+    } catch (error) {
+        console.error("Initialization error:", error);
+        // Show error to user
+    }
+});
+</script>
     
 </body>
 </html>
