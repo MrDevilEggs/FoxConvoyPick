@@ -261,6 +261,18 @@
             margin-top: 20px;
         }
 
+        #googleSignInBtn {
+            background-color: #4285F4;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #googleSignInBtn:hover {
+            background-color: #3367D6;
+        }
+
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -296,13 +308,10 @@
         <header class="header">
             <h1>Daily Leader Tracker</h1>
             <div id="authButtons">
-                <button id="loginBtn" class="btn btn-primary">Login</button>
+                <div id="googleSignInBtn" class="btn">Sign in with Google</div>
+                <button id="hashLoginBtn" class="btn btn-primary">Password Login</button>
+                <button id="logoutBtn" class="btn btn-danger hidden">Logout</button>
             </div>
-             <div id="authButtons">
-        <div id="googleSignInBtn" class="btn">Sign in with Google</div>
-        <button id="hashLoginBtn" class="btn btn-primary">Password Login</button>
-        <button id="logoutBtn" class="btn btn-danger hidden">Logout</button>
-    </div>
         </header>
 
         <div id="messageContainer"></div>
@@ -352,7 +361,7 @@
     <!-- Login Modal -->
     <div id="loginModal" class="modal hidden">
         <div class="modal-content">
-            <h3>Authentication Required</h3>
+            <h3>Password Login</h3>
             <div class="form-group">
                 <label for="password">Password:</label>
                 <input type="password" id="password" class="form-control" placeholder="Enter password">
@@ -378,171 +387,375 @@
 
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
-       <script>
-    class LeaderTrackerApp {
-        constructor() {
-            this.API_URL = 'YOUR_APPS_SCRIPT_URL';
-            this.state = {
-                isAdmin: false,
-                currentUser: null,
-                authMethod: null, // 'google' or 'hash'
-                authToken: null
-            };
+    <script>
+        class LeaderTrackerApp {
+            constructor() {
+                // Initialize with your specific script URL
+                this.API_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+                
+                // Initialize state
+                this.state = {
+                    isAdmin: false,
+                    currentPage: 0,
+                    pageSize: 10,
+                    totalEntries: 0,
+                    editingId: null,
+                    authMethod: null, // 'google' or 'hash'
+                    authToken: null
+                };
 
-            this.elements = this._initElements();
-            this._setupEventListeners();
-            this._setupGoogleAuth();
-            this.checkAuthState();
-        }
-
-        _initElements() {
-            return {
-                // [Your existing elements]
-                googleSignInBtn: document.getElementById('googleSignInBtn'),
-                hashLoginBtn: document.getElementById('hashLoginBtn'),
-                logoutBtn: document.getElementById('logoutBtn'),
-                // [Rest of your existing elements]
-            };
-        }
-
-        _setupGoogleAuth() {
-            google.accounts.id.initialize({
-                client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
-                callback: (response) => this._handleGoogleSignIn(response)
-            });
-            
-            if (localStorage.getItem('googleAuthToken')) {
-                this._parseToken(localStorage.getItem('googleAuthToken'));
+                // Initialize elements
+                this.elements = this._initElements();
+                
+                // Setup event listeners
+                this._setupEventListeners();
+                
+                // Initialize Google Auth
+                this._setupGoogleAuth();
+                
+                // Check initial auth state
+                this.checkAuthState();
             }
-        }
 
-        _handleGoogleSignIn(response) {
-            localStorage.setItem('googleAuthToken', response.credential);
-            this._parseToken(response.credential);
-            this.state.authMethod = 'google';
-            this.checkAuthState();
-        }
+            _initElements() {
+                return {
+                    authButtons: document.getElementById('authButtons'),
+                    googleSignInBtn: document.getElementById('googleSignInBtn'),
+                    hashLoginBtn: document.getElementById('hashLoginBtn'),
+                    logoutBtn: document.getElementById('logoutBtn'),
+                    adminPanel: document.getElementById('adminPanel'),
+                    leaderList: document.getElementById('leaderList'),
+                    pagination: document.getElementById('pagination'),
+                    prevPageBtn: document.getElementById('prevPageBtn'),
+                    nextPageBtn: document.getElementById('nextPageBtn'),
+                    pageInfo: document.getElementById('pageInfo'),
+                    refreshBtn: document.getElementById('refreshBtn'),
+                    refreshText: document.getElementById('refreshText'),
+                    refreshSpinner: document.getElementById('refreshSpinner'),
+                    leaderInput: document.getElementById('leader'),
+                    support1Input: document.getElementById('support1'),
+                    support2Input: document.getElementById('support2'),
+                    addEntryBtn: document.getElementById('addEntryBtn'),
+                    updateEntryBtn: document.getElementById('updateEntryBtn'),
+                    cancelEditBtn: document.getElementById('cancelEditBtn'),
+                    loginModal: document.getElementById('loginModal'),
+                    passwordInput: document.getElementById('password'),
+                    cancelLoginBtn: document.getElementById('cancelLoginBtn'),
+                    submitLoginBtn: document.getElementById('submitLoginBtn'),
+                    confirmModal: document.getElementById('confirmModal'),
+                    confirmTitle: document.getElementById('confirmTitle'),
+                    confirmMessage: document.getElementById('confirmMessage'),
+                    cancelConfirmBtn: document.getElementById('cancelConfirmBtn'),
+                    submitConfirmBtn: document.getElementById('submitConfirmBtn')
+                };
+            }
 
-        _parseToken(token) {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            this.state.currentUser = {
-                email: payload.email,
-                name: payload.name,
-                picture: payload.picture
-            };
-        }
-
-        async checkAuthState() {
-            if (this.state.authMethod === 'google' && this.state.currentUser) {
-                // Verify with Google
-                try {
-                    const response = await this.apiRequest('GET', {
-                        action: 'verify'
-                    });
-                    this.state.isAdmin = response.valid;
-                    this.showAdminUI();
-                    this.loadData();
-                } catch (error) {
-                    this.handleLogout();
+            _setupGoogleAuth() {
+                google.accounts.id.initialize({
+                    client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+                    callback: (response) => this._handleGoogleSignIn(response)
+                });
+                
+                // Check if user is already signed in
+                if (localStorage.getItem('googleAuthToken')) {
+                    this._parseToken(localStorage.getItem('googleAuthToken'));
                 }
-            } else if (this.state.authMethod === 'hash' && this.state.authToken) {
-                // Verify with password hash
+            }
+
+            _handleGoogleSignIn(response) {
+                localStorage.setItem('googleAuthToken', response.credential);
+                this._parseToken(response.credential);
+                this.state.authMethod = 'google';
+                this.checkAuthState();
+            }
+
+            _parseToken(token) {
                 try {
-                    const response = await this.apiRequest('GET', {
-                        action: 'verify',
-                        passwordHash: this.state.authToken
-                    });
-                    this.state.isAdmin = response.valid;
-                    if (this.state.isAdmin) {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    this.state.currentUser = {
+                        email: payload.email,
+                        name: payload.name,
+                        picture: payload.picture
+                    };
+                } catch (error) {
+                    console.error('Error parsing token:', error);
+                }
+            }
+
+            _setupEventListeners() {
+                // Auth buttons
+                this.elements.googleSignInBtn.addEventListener('click', () => {
+                    google.accounts.id.prompt();
+                });
+                this.elements.hashLoginBtn.addEventListener('click', () => this.showLoginModal());
+                this.elements.logoutBtn.addEventListener('click', () => this.handleLogout());
+                this.elements.submitLoginBtn.addEventListener('click', () => this.handleHashLogin());
+                this.elements.cancelLoginBtn.addEventListener('click', () => this.hideLoginModal());
+                this.elements.passwordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.handleHashLogin();
+                });
+
+                // Form actions
+                this.elements.addEntryBtn.addEventListener('click', () => this.handleAddEntry());
+                this.elements.updateEntryBtn.addEventListener('click', () => this.handleUpdateEntry());
+                this.elements.cancelEditBtn.addEventListener('click', () => this.cancelEdit());
+
+                // Data actions
+                this.elements.refreshBtn.addEventListener('click', () => this.loadData());
+                this.elements.prevPageBtn.addEventListener('click', () => this.prevPage());
+                this.elements.nextPageBtn.addEventListener('click', () => this.nextPage());
+
+                // Modal actions
+                this.elements.cancelConfirmBtn.addEventListener('click', () => this.hideConfirmModal());
+                this.elements.submitConfirmBtn.addEventListener('click', () => {
+                    const currentAction = this.elements.submitConfirmBtn.dataset.action;
+                    if (currentAction === 'delete') {
+                        this.handleDelete(this.state.editingId);
+                    }
+                });
+            }
+
+            async checkAuthState() {
+                try {
+                    let response;
+                    if (this.state.authMethod === 'google' && localStorage.getItem('googleAuthToken')) {
+                        response = await this.apiRequest('GET', {
+                            action: 'verify'
+                        });
+                    } else if (this.state.authMethod === 'hash' && this.state.authToken) {
+                        response = await this.apiRequest('GET', {
+                            action: 'verify',
+                            passwordHash: this.state.authToken
+                        });
+                    }
+
+                    if (response && response.valid) {
+                        this.state.isAdmin = true;
                         this.showAdminUI();
                         this.loadData();
                     } else {
                         this.handleLogout();
                     }
                 } catch (error) {
+                    console.error("Auth check failed:", error);
                     this.handleLogout();
                 }
-            } else {
+            }
+
+            showAdminUI() {
+                this.elements.adminPanel.classList.remove('hidden');
+                this.elements.googleSignInBtn.classList.add('hidden');
+                this.elements.hashLoginBtn.classList.add('hidden');
+                this.elements.logoutBtn.classList.remove('hidden');
+            }
+
+            hideAdminUI() {
+                this.elements.adminPanel.classList.add('hidden');
+                this.elements.googleSignInBtn.classList.remove('hidden');
+                this.elements.hashLoginBtn.classList.remove('hidden');
+                this.elements.logoutBtn.classList.add('hidden');
+            }
+
+            showLoginModal() {
+                this.elements.passwordInput.value = '';
+                this.elements.loginModal.classList.remove('hidden');
+            }
+
+            hideLoginModal() {
+                this.elements.loginModal.classList.add('hidden');
+            }
+
+            async handleHashLogin() {
+                const password = this.elements.passwordInput.value.trim();
+                if (!password) {
+                    this.showError('Please enter a password');
+                    return;
+                }
+
+                this.showLoading(true, 'login');
+                
+                try {
+                    const passwordHash = sha256(password).toLowerCase();
+                    const response = await this.apiRequest('GET', {
+                        action: 'verify',
+                        passwordHash: passwordHash
+                    });
+
+                    if (response.valid) {
+                        this.state.authToken = passwordHash;
+                        this.state.authMethod = 'hash';
+                        localStorage.setItem('authToken', passwordHash);
+                        this.checkAuthState();
+                        this.hideLoginModal();
+                        this.showSuccess('Logged in successfully');
+                    } else {
+                        this.showError('Invalid password');
+                    }
+                } catch (error) {
+                    this.showError('Login failed. Please try again.');
+                    console.error("Login error:", error);
+                } finally {
+                    this.showLoading(false, 'login');
+                }
+            }
+
+            handleLogout() {
+                if (this.state.authMethod === 'google') {
+                    google.accounts.id.disableAutoSelect();
+                    localStorage.removeItem('googleAuthToken');
+                } else {
+                    localStorage.removeItem('authToken');
+                }
+                
+                this.state = {
+                    isAdmin: false,
+                    currentPage: 0,
+                    pageSize: 10,
+                    totalEntries: 0,
+                    editingId: null,
+                    authMethod: null,
+                    authToken: null
+                };
+                
                 this.hideAdminUI();
+                this.showSuccess('Logged out successfully');
+                this.cancelEdit();
+                this.loadData();
             }
-        }
 
-        async handleHashLogin(password) {
-            const passwordHash = sha256(password.trim()).toLowerCase();
-            this.state.authToken = passwordHash;
-            this.state.authMethod = 'hash';
-            localStorage.setItem('authToken', passwordHash);
-            await this.checkAuthState();
-        }
+            // [Keep all your existing data methods like loadData, handleAddEntry, etc.]
+            // ... (Include all the other methods from your previous implementation)
 
-        handleLogout() {
-            if (this.state.authMethod === 'google') {
-                google.accounts.id.disableAutoSelect();
-                localStorage.removeItem('googleAuthToken');
-            } else {
-                localStorage.removeItem('authToken');
-            }
-            
-            this.state = {
-                isAdmin: false,
-                currentUser: null,
-                authMethod: null,
-                authToken: null
-            };
-            
-            this.hideAdminUI();
-            this.showSuccess('Logged out successfully');
-            this.cancelEdit();
-            this.loadData();
-        }
+            async apiRequest(method, data) {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
 
-        async apiRequest(method, data) {
-            const options = {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json'
+                // Add auth token based on method
+                if (this.state.authMethod === 'google' && localStorage.getItem('googleAuthToken')) {
+                    options.headers['Authorization'] = `Bearer ${localStorage.getItem('googleAuthToken')}`;
+                } else if (this.state.authMethod === 'hash' && this.state.authToken) {
+                    data.passwordHash = this.state.authToken;
                 }
-            };
 
-            // Add auth token based on method
-            if (this.state.authMethod === 'google' && localStorage.getItem('googleAuthToken')) {
-                options.headers['Authorization'] = `Bearer ${localStorage.getItem('googleAuthToken')}`;
-            } else if (this.state.authMethod === 'hash' && this.state.authToken) {
-                data.passwordHash = this.state.authToken;
-            }
-
-            let url = this.API_URL;
-            
-            if (method === 'GET') {
-                const params = new URLSearchParams();
-                for (const key in data) {
-                    params.append(key, data[key]);
+                let url = this.API_URL;
+                
+                if (method === 'GET') {
+                    const params = new URLSearchParams();
+                    for (const key in data) {
+                        if (data[key] !== null && data[key] !== undefined) {
+                            params.append(key, data[key]);
+                        }
+                    }
+                    url += '?' + params.toString();
+                } else {
+                    options.body = JSON.stringify(data);
                 }
-                url += '?' + params.toString();
-            } else {
-                options.body = JSON.stringify(data);
+
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error('API Request failed:', error);
+                    throw error;
+                }
             }
 
-            const response = await fetch(url, options);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
+            showLoading(show, context = 'global') {
+                if (context === 'global') {
+                    this.elements.refreshText.classList.toggle('hidden', show);
+                    this.elements.refreshSpinner.classList.toggle('hidden', !show);
+                    this.elements.refreshBtn.disabled = show;
+                } else if (context === 'login') {
+                    const originalText = this.elements.submitLoginBtn.textContent;
+                    this.elements.submitLoginBtn.innerHTML = show ? 
+                        '<span class="loading"></span>' : 
+                        originalText;
+                    this.elements.submitLoginBtn.disabled = show;
+                }
+            }
+
+            showSuccess(message) {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    close: true,
+                    gravity: 'top',
+                    position: 'right',
+                    style: {
+                        background: 'var(--discord-green)'
+                    },
+                    stopOnFocus: true
+                }).showToast();
+            }
+
+            showError(message) {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    close: true,
+                    gravity: 'top',
+                    position: 'right',
+                    style: {
+                        background: 'var(--discord-red)'
+                    },
+                    stopOnFocus: true
+                }).showToast();
+            }
+
+            formatDate(dateString) {
+                if (!dateString) return 'Unknown date';
+                
+                try {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } catch (e) {
+                    return dateString;
+                }
+            }
         }
 
-        // [Rest of your existing methods]
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        window.app = new LeaderTrackerApp();
-        
-        // Add event listeners for new buttons
-        document.getElementById('hashLoginBtn').addEventListener('click', () => {
-            app.showLoginModal();
+        // Initialize the app when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                window.app = new LeaderTrackerApp();
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.style.position = 'fixed';
+                errorDiv.style.top = '0';
+                errorDiv.style.left = '0';
+                errorDiv.style.right = '0';
+                errorDiv.style.padding = '20px';
+                errorDiv.style.backgroundColor = '#ff4444';
+                errorDiv.style.color = 'white';
+                errorDiv.style.zIndex = '10000';
+                errorDiv.style.textAlign = 'center';
+                errorDiv.innerHTML = `
+                    <h3>Application Error</h3>
+                    <p>${error.message || 'Initialization failed'}</p>
+                    <p>Please refresh the page or contact support.</p>
+                    <button onclick="window.location.reload()" 
+                            style="padding: 8px 16px; background: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Refresh Page
+                    </button>
+                `;
+                document.body.prepend(errorDiv);
+            }
         });
-        
-        document.getElementById('googleSignInBtn').addEventListener('click', () => {
-            google.accounts.id.prompt();
-        });
-    });
     </script>
 </body>
 </html>
