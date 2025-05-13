@@ -1,176 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Fox Train Convoy Assignment</title>
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background-color: #2f3136;
-      color: #dcddde;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
-    }
-    h1 {
-      text-align: center;
-      color: #7289da;
-    }
-    .support {
-      text-align: center;
-      margin-top: -10px;
-      margin-bottom: 20px;
-      font-size: 0.95rem;
-      color: #b9bbbe;
-    }
-    .assignment, .history {
-      background: #36393f;
-      padding: 15px;
-      margin-top: 20px;
-      border-radius: 8px;
-    }
-    .input-group {
-      margin-bottom: 10px;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 1rem;
-      border: 1px solid #444b54;
-      background-color: #2f3136;
-      color: #dcddde;
-      border-radius: 5px;
-    }
-    button {
-      background-color: #7289da;
-      border-color: #7289da;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #5f6f87;
-    }
-    ul {
-      padding-left: 20px;
-    }
-    .history-entry {
-      margin-bottom: 10px;
-      padding: 10px;
-      background: #444b54;
-      border: 1px solid #4f545c;
-      border-radius: 5px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Leader Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Fox Train Convoy Assignment</h1>
-  <div class="support">
-    📡 Need support? Contact <strong>mrdevileggs</strong> on Discord.
-  </div>
+    <div class="container">
+        <header class="header">
+            <h1>Daily Leader Tracker</h1>
+            <button id="adminBtn" class="admin-btn">Admin Login</button>
+        </header>
 
-  <div class="input-group">
-    <input type="text" id="leaderName" placeholder="Enter leader name" />
-    <input type="text" id="companion1" placeholder="Enter 1st companion" />
-    <input type="text" id="companion2" placeholder="Enter 2nd companion" />
-    <button onclick="logConvoy()">Log Today's Convoy</button>
-  </div>
+        <div id="adminPanel" class="admin-panel hidden">
+            <h2>Admin Controls</h2>
+            <input type="password" id="adminPassword" placeholder="Enter admin password" class="admin-input">
+            <button id="submitPassword" class="submit-btn">Authenticate</button>
+            <div id="adminControls" class="admin-controls hidden">
+                <div class="form-group">
+                    <label for="leader">Leader:</label>
+                    <input type="text" id="leader" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="support1">Support 1:</label>
+                    <input type="text" id="support1" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="support2">Support 2:</label>
+                    <input type="text" id="support2" class="form-input" required>
+                </div>
+                <button id="addEntry" class="submit-btn">Add Today's Team</button>
+                <button id="clearData" class="danger-btn">Clear All Data</button>
+            </div>
+        </div>
 
-  <div class="assignment" id="todayAssignment">
-    <strong>Today's Convoy:</strong>
-    <ul id="convoyList">
-      <li>Date: -</li>
-      <li>Leader: -</li>
-      <li>Companions: -</li>
-    </ul>
-  </div>
+        <main class="leader-board">
+            <h2>Leader History</h2>
+            <div id="leaderList" class="leader-list">
+                <!-- Entries will be added here dynamically -->
+            </div>
+        </main>
+    </div>
 
-  <div class="history">
-    <h3>Past Convoys</h3>
-    <div id="assignmentHistory"></div>
-  </div>
-
-  <script>
-    // Your new Web App URL
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbzpJM4EPaFFR0fqZpPlRgSx6co-WMsX4Eox8Z2Ku1fxzFj5ibD3RkYkMjs8nOTKKvSqSg/exec";
-    const expectedPassword = "log123";
-    let history = [];
-
-    function updateAssignment(entry) {
-      const list = document.getElementById('convoyList');
-      list.innerHTML = `
-        <li><strong>Date:</strong> ${entry.date}</li>
-        <li><strong>Leader:</strong> ${entry.leader}</li>
-        <li><strong>Companions:</strong> ${entry.companions.join(', ')}</li>
-      `;
-    }
-
-    function addToHistory(entry) {
-      history.push(entry);
-      history.sort((a, b) => b.date.localeCompare(a.date));
-      renderHistory();
-    }
-
-    function renderHistory() {
-      const container = document.getElementById('assignmentHistory');
-      container.innerHTML = '';
-      history.forEach(entry => {
-        const div = document.createElement('div');
-        div.className = 'history-entry';
-        div.innerHTML = `
-          <strong>Date:</strong> ${entry.date}<br>
-          <strong>Leader:</strong> ${entry.leader}<br>
-          <strong>Companions:</strong> ${entry.companions.join(', ')}
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    async function logConvoy() {
-      const leader = document.getElementById('leaderName').value.trim();
-      const c1 = document.getElementById('companion1').value.trim();
-      const c2 = document.getElementById('companion2').value.trim();
-      const today = new Date().toISOString().slice(0, 10);
-
-      if (!leader || !c1 || !c2) {
-        alert('Please enter all three names.');
-        return;
-      }
-
-      const password = prompt("Enter password to log this entry:");
-      if (password !== expectedPassword) {
-        alert('Incorrect password.');
-        return;
-      }
-
-      // Build query string to avoid CORS preflight
-      const params = new URLSearchParams({
-        password,
-        date: today,
-        leader,
-        companions: JSON.stringify([c1, c2])
-      });
-
-      try {
-        const response = await fetch(`${webAppUrl}?${params.toString()}`, {
-          method: 'GET'
-        });
-        const result = await response.json();
-
-        if (result.success) {
-          alert('Convoy logged successfully!');
-          const entry = { date: today, leader, companions: [c1, c2] };
-          addToHistory(entry);
-          updateAssignment(entry);
-          document.getElementById('leaderName').value = '';
-          document.getElementById('companion1').value = '';
-          document.getElementById('companion2').value = '';
-        } else {
-          alert('Error: ' + result.message);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Network error. Please check connection or script URL.');
-      }
-    }
-  </script>
+    <script src="script.js"></script>
 </body>
 </html>
