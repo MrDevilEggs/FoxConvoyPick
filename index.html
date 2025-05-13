@@ -1,129 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Convoy Leader Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Convoy Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-      background-color: #f4f4f4;
+      background: #f2f2f2;
     }
-    button {
-      padding: 10px;
-      margin: 5px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
+    h1 {
+      text-align: center;
     }
-    button:hover {
-      background-color: #45a049;
-    }
-    .admin-panel {
+    #adminPanel {
       display: none;
       margin-top: 20px;
       padding: 20px;
-      background-color: #fff;
+      border: 1px solid #ccc;
+      background: white;
+      border-radius: 10px;
+    }
+    .entry {
+      margin: 10px 0;
+      padding: 10px;
+      background: white;
       border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border: 1px solid #ddd;
     }
-    .admin-panel input, .admin-panel select {
-      padding: 10px;
-      margin: 10px;
-      width: 100%;
-      box-sizing: border-box;
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      cursor: pointer;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 5px;
     }
-    .entries-list {
-      margin-top: 20px;
-    }
-    .entries-list table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .entries-list th, .entries-list td {
-      padding: 10px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
+    input {
+      margin: 5px;
+      padding: 8px;
     }
   </style>
 </head>
 <body>
+  <h1>Fox Convoy Tracker</h1>
 
-  <h1>Convoy Leader Tracker</h1>
-  <button onclick="showAdminPanel()">Admin</button>
+  <button onclick="showAdminPanel()">Admin Login</button>
 
-  <div class="admin-panel" id="adminPanel">
+  <div id="adminPanel">
     <h2>Add Convoy Entry</h2>
-    <form id="entryForm">
-      <input type="text" id="leader" placeholder="Leader" required><br>
-      <input type="text" id="support1" placeholder="Support 1" required><br>
-      <input type="text" id="support2" placeholder="Support 2"><br>
-      <button type="button" onclick="addEntry()">Add Entry</button>
-    </form>
-
-    <h3>Existing Entries</h3>
-    <div class="entries-list" id="entriesList"></div>
+    <input type="text" id="name" placeholder="Name" />
+    <input type="text" id="task" placeholder="Task" />
+    <input type="text" id="date" placeholder="Date (e.g. 2025-05-13)" />
+    <button onclick="addEntry()">Add Entry</button>
   </div>
 
+  <h2>Convoy Logs</h2>
+  <div id="entries"></div>
+
   <script>
-    const webAppUrl = 'https://script.google.com/macros/s/AKfycbyPjRD5VygOLikSy1sNx-JnXmwg2F1oooRfg7RzPr8jT8D_yKkI_EEKB0YBk3hNlHfo/exec';
-    const passwordHash = '7f2f37ce94d2a8ad653d8b716a95d09dbbcd8d2d617dc47f6d59283d5f9cd453'; // SHA-256 of "NotThatDeep"
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbykiEpKWJSpWRlrITWMMjzYkKbjpXzhOTJNvRbNxRLqCHE2PbBtwQsKFouu_zMQdIat/exec';
+    const password = 'NotThatDeep';
 
     function showAdminPanel() {
-      const panel = document.getElementById("adminPanel");
-      panel.style.display = panel.style.display === "none" || panel.style.display === "" ? "block" : "none";
-      loadEntries();
+      const input = prompt("Enter admin password:");
+      if (input === password) {
+        document.getElementById('adminPanel').style.display = 'block';
+      } else {
+        alert("Incorrect password.");
+      }
     }
 
-    async function addEntry() {
-      const leader = document.getElementById('leader').value;
-      const support1 = document.getElementById('support1').value;
-      const support2 = document.getElementById('support2').value;
-
-      const response = await fetch(webAppUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'add',
-          leader: leader,
-          support1: support1,
-          support2: support2,
-          passwordHash: passwordHash
+    function loadEntries() {
+      fetch(`${scriptURL}?action=get`)
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById('entries');
+          container.innerHTML = '';
+          if (data.status === 'success') {
+            data.entries.forEach(row => {
+              const div = document.createElement('div');
+              div.className = 'entry';
+              div.innerText = `Name: ${row[0]}, Task: ${row[1]}, Date: ${row[2]}`;
+              container.appendChild(div);
+            });
+          } else {
+            container.innerText = 'Error loading data.';
+          }
         })
-      });
-
-      const result = await response.json();
-      if (result.status === 'success') {
-        alert('Entry added successfully!');
-        document.getElementById('entryForm').reset();
-        loadEntries();
-      } else {
-        alert('Error: ' + result.message);
-      }
-    }
-
-    async function loadEntries() {
-      const response = await fetch(`${webAppUrl}?action=get`);
-      const result = await response.json();
-      if (result.status === 'success') {
-        const entries = result.data;
-        const entriesList = document.getElementById('entriesList');
-        entriesList.innerHTML = '';
-        const table = document.createElement('table');
-        table.innerHTML = '<tr><th>Timestamp</th><th>Leader</th><th>Support 1</th><th>Support 2</th></tr>';
-        
-        entries.forEach(entry => {
-          const row = table.insertRow();
-          row.innerHTML = `<td>${entry[0]}</td><td>${entry[1]}</td><td>${entry[2]}</td><td>${entry[3]}</td>`;
+        .catch(err => {
+          console.error(err);
+          document.getElementById('entries').innerText = 'Failed to load entries.';
         });
-
-        entriesList.appendChild(table);
-      } else {
-        alert('Error loading entries: ' + result.message);
-      }
     }
+
+    function addEntry() {
+      const name = document.getElementById('name').value;
+      const task = document.getElementById('task').value;
+      const date = document.getElementById('date').value;
+
+      fetch(scriptURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          password: password,
+          name: name,
+          task: task,
+          date: date
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            alert('Entry added!');
+            loadEntries();
+          } else {
+            alert('Error adding entry: ' + data.message);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Failed to add entry.');
+        });
+    }
+
+    loadEntries();
   </script>
 </body>
 </html>
+
