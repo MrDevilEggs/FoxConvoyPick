@@ -185,6 +185,19 @@
         if (todayEntry) {
           renderToday(todayEntry.date, todayEntry.leader, [todayEntry.companion1, todayEntry.companion2]);
         }
+        await fetch('https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    password: 'log123',
+    date: today,
+    leader,
+    companions: [c1, c2]
+  })
+});
+
 
       } catch (err) {
         console.error("Failed to fetch history:", err);
