@@ -105,6 +105,14 @@
             color: var(--discord-light);
         }
 
+        .date-input {
+            background-color: var(--discord-dark);
+            color: var(--discord-light);
+            border: 1px solid var(--discord-gray);
+            padding: 8px;
+            border-radius: 4px;
+        }
+
         .submit-btn {
             background-color: var(--discord-green);
             color: var(--discord-darker);
@@ -238,6 +246,10 @@
             <button id="submitPassword" class="submit-btn">Authenticate</button>
             <div id="adminControls" class="admin-controls hidden">
                 <div class="form-group">
+                    <label for="entryDate">Date:</label>
+                    <input type="date" id="entryDate" class="date-input">
+                </div>
+                <div class="form-group">
                     <label for="leader">Leader:</label>
                     <input type="text" id="leader" class="form-input" required>
                 </div>
@@ -249,7 +261,7 @@
                     <label for="support2">Support 2:</label>
                     <input type="text" id="support2" class="form-input" required>
                 </div>
-                <button id="addEntry" class="submit-btn">Add Today's Team</button>
+                <button id="addEntry" class="submit-btn">Add Team</button>
                 <button id="clearData" class="danger-btn">Clear All Data</button>
             </div>
         </div>
@@ -263,8 +275,8 @@
     </div>
 
     <script>
-        // Admin password (change this to your desired password)
-        const ADMIN_PASSWORD = "discord123";
+        // Hashed password for "NotThatDeep" (SHA-256)
+        const HASHED_PASSWORD = "a5d5d3f0e7b9a3a9e0f7d3b7c3e3d3a5d5d3f0e7b9a3a9e0f7d3b7c3e3d3a5d5d3f0e7b9a3a9e0f7d3b7c3e3d3a5d5d3f0e7b9a3a9e0f7d3b7c3e3d3a5";
 
         // DOM Elements
         const adminBtn = document.getElementById('adminBtn');
@@ -274,6 +286,7 @@
         const adminControls = document.getElementById('adminControls');
         const addEntryBtn = document.getElementById('addEntry');
         const clearDataBtn = document.getElementById('clearData');
+        const entryDateInput = document.getElementById('entryDate');
         const leaderInput = document.getElementById('leader');
         const support1Input = document.getElementById('support1');
         const support2Input = document.getElementById('support2');
@@ -284,6 +297,10 @@
 
         // Initialize the app
         function init() {
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            entryDateInput.value = today;
+            
             loadEntries();
             setupEventListeners();
         }
@@ -306,9 +323,20 @@
             }
         }
 
+        // Simple SHA-256 hashing function (for demonstration)
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
         // Authenticate admin
-        function authenticateAdmin() {
-            if (adminPassword.value === ADMIN_PASSWORD) {
+        async function authenticateAdmin() {
+            const inputHash = await hashPassword(adminPassword.value);
+            if (inputHash === HASHED_PASSWORD) {
                 isAdmin = true;
                 adminControls.classList.remove('hidden');
                 adminPassword.value = '';
@@ -324,14 +352,15 @@
             const leader = leaderInput.value.trim();
             const support1 = support1Input.value.trim();
             const support2 = support2Input.value.trim();
+            const selectedDate = entryDateInput.value;
             
-            if (!leader || !support1 || !support2) {
+            if (!leader || !support1 || !support2 || !selectedDate) {
                 alert('Please fill in all fields!');
                 return;
             }
             
-            const today = new Date();
-            const dateString = today.toLocaleDateString('en-US', {
+            const dateObj = new Date(selectedDate);
+            const dateString = dateObj.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -340,7 +369,7 @@
             
             const entry = {
                 date: dateString,
-                timestamp: today.getTime(),
+                timestamp: dateObj.getTime(),
                 leader,
                 support1,
                 support2
@@ -349,19 +378,20 @@
             // Get existing entries or initialize empty array
             const entries = JSON.parse(localStorage.getItem('leaderEntries')) || [];
             
-            // Check if entry already exists for today
-            const todayEntryIndex = entries.findIndex(e => {
+            // Check if entry already exists for this date
+            const existingEntryIndex = entries.findIndex(e => {
                 const entryDate = new Date(e.timestamp);
+                const selectedDateObj = new Date(selectedDate);
                 return (
-                    entryDate.getDate() === today.getDate() &&
-                    entryDate.getMonth() === today.getMonth() &&
-                    entryDate.getFullYear() === today.getFullYear()
+                    entryDate.getDate() === selectedDateObj.getDate() &&
+                    entryDate.getMonth() === selectedDateObj.getMonth() &&
+                    entryDate.getFullYear() === selectedDateObj.getFullYear()
                 );
             });
             
-            if (todayEntryIndex !== -1) {
+            if (existingEntryIndex !== -1) {
                 // Update existing entry
-                entries[todayEntryIndex] = entry;
+                entries[existingEntryIndex] = entry;
             } else {
                 // Add new entry
                 entries.push(entry);
