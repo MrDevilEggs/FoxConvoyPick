@@ -451,8 +451,26 @@ document.getElementById('googleSignInBtn').addEventListener('click', function() 
 
                 this.elements = this._initElements();
                 this._setupEventListeners();
-                this._initializeAuth();
-            }
+                this._initializeGoogleAuthWithRetry();
+}
+
+_initializeGoogleAuthWithRetry(attempt = 0) {
+    const maxAttempts = 3;
+    
+    if (window.google && google.accounts && google.accounts.id) {
+        this._setupGoogleAuth();
+    } else if (attempt < maxAttempts) {
+        setTimeout(() => {
+            this._initializeGoogleAuthWithRetry(attempt + 1);
+        }, 500 * (attempt + 1));
+    } else {
+        console.warn('Google Sign-In failed after retries');
+        this.elements.googleSignInBtn.classList.add('hidden');
+        this.elements.authError.textContent = 
+            'Google Sign-In unavailable. Please use password login.';
+        this.elements.authError.classList.remove('hidden');
+    }
+}
 
             _initElements() {
                 return {
