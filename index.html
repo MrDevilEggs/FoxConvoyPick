@@ -261,16 +261,19 @@
         }
 
         #googleSignInBtn {
-            background-color: #4285F4;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    display: none; /* Start hidden */
+    background-color: #4285F4;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
 
-        #googleSignInBtn:hover {
-            background-color: #3367D6;
-        }
+#googleSignInBtn.visible {
+    display: flex;
+}
 
         .auth-error {
             padding: 10px;
