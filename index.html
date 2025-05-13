@@ -320,7 +320,6 @@
             }
         }
     </style>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="container">
@@ -328,7 +327,7 @@
             <h1>Daily Leader Tracker</h1>
             <div id="authButtons">
                 <div id="authError" class="auth-error hidden"></div>
-                <div id="googleSignInBtn" class="btn hidden">
+                <div id="googleSignInBtn" class="btn">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="margin-right:8px">
                         <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
                         <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
@@ -342,7 +341,6 @@
             </div>
         </header>
 
-        <!-- Added Admin Panel -->
         <div id="adminPanel" class="panel hidden">
             <h2>Admin Controls</h2>
             <div class="form-group">
@@ -414,6 +412,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         class LeaderTrackerApp {
             constructor() {
@@ -426,7 +425,8 @@
                     totalEntries: 0,
                     editingId: null,
                     authMethod: null,
-                    authToken: null
+                    authToken: null,
+                    googleReady: false
                 };
 
                 this.elements = this._initElements();
@@ -470,10 +470,11 @@
 
             async _initializeAuth() {
                 try {
-                    // Wait for Google auth to load with timeout
+                    // Wait for Google auth to load
                     await new Promise((resolve) => {
                         const check = () => {
                             if (window.google && google.accounts) {
+                                this.state.googleReady = true;
                                 resolve();
                             } else {
                                 setTimeout(check, 100);
@@ -510,35 +511,17 @@
                 this.elements.authError.classList.remove('hidden');
             }
 
-            _initializeGoogleAuthWithRetry(attempt = 0) {
-                const maxAttempts = 3;
-                
-                if (window.google && google.accounts && google.accounts.id) {
-                    this._setupGoogleAuth();
-                } else if (attempt < maxAttempts) {
-                    setTimeout(() => {
-                        this._initializeGoogleAuthWithRetry(attempt + 1);
-                    }, 500 * (attempt + 1));
-                } else {
-                    this._showAuthFallback('Google Sign-In unavailable after retries');
-                }
-            }
-
             _setupEventListeners() {
+                // Google Sign-In button
                 this.elements.googleSignInBtn.addEventListener('click', () => {
-                    if (window.google && google.accounts && google.accounts.id) {
+                    if (window.google?.accounts?.id) {
                         google.accounts.id.prompt();
                     } else {
                         this._showAuthFallback('Google Sign-In not loaded');
-                    this.elements.googleSignInBtn.classList.add('hidden');
-                    this.elements.hashLoginBtn.classList.remove('hidden');
-                    this.elements.authError.classList.remove('hidden');
-                    this.elements.authError.textContent = 'Google Sign-In failed to load. Please use password login.';
-                    console.error('Google Sign-In library not loaded');
-                    this._initializeGoogleAuthWithRetry();
                     }
                 });
 
+                // Password login
                 this.elements.hashLoginBtn.addEventListener('click', () => this.showLoginModal());
                 this.elements.logoutBtn.addEventListener('click', () => this.handleLogout());
                 this.elements.submitLoginBtn.addEventListener('click', () => this.handleHashLogin());
@@ -547,14 +530,17 @@
                     if (e.key === 'Enter') this.handleHashLogin();
                 });
 
+                // Entry management
                 this.elements.addEntryBtn.addEventListener('click', () => this.handleAddEntry());
                 this.elements.updateEntryBtn.addEventListener('click', () => this.handleUpdateEntry());
                 this.elements.cancelEditBtn.addEventListener('click', () => this.cancelEdit());
 
+                // Data actions
                 this.elements.refreshBtn.addEventListener('click', () => this.loadData());
                 this.elements.prevPageBtn.addEventListener('click', () => this.prevPage());
                 this.elements.nextPageBtn.addEventListener('click', () => this.nextPage());
 
+                // Confirmation modal
                 this.elements.cancelConfirmBtn.addEventListener('click', () => this.hideConfirmModal());
                 this.elements.submitConfirmBtn.addEventListener('click', () => {
                     if (this.elements.submitConfirmBtn.dataset.action === 'delete') {
@@ -597,7 +583,9 @@
 
             hideAdminUI() {
                 this.elements.adminPanel.classList.add('hidden');
-                this.elements.googleSignInBtn.classList.remove('hidden');
+                if (this.state.googleReady) {
+                    this.elements.googleSignInBtn.classList.remove('hidden');
+                }
                 this.elements.hashLoginBtn.classList.remove('hidden');
                 this.elements.logoutBtn.classList.add('hidden');
             }
@@ -677,7 +665,8 @@
                     totalEntries: 0,
                     editingId: null,
                     authMethod: null,
-                    authToken: null
+                    authToken: null,
+                    googleReady: this.state.googleReady
                 };
                 
                 this.hideAdminUI();
