@@ -5,66 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fox Train Convoy Assignment</title>
   <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background-color: #2f3136;
-      color: #dcddde;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
-    }
-    h1 {
-      text-align: center;
-      color: #7289da;
-    }
-    .support {
-      text-align: center;
-      margin-top: -10px;
-      margin-bottom: 20px;
-      font-size: 0.95rem;
-      color: #b9bbbe;
-    }
-    .support i {
-      margin-right: 5px;
-      color: #7289da;
-    }
-    .assignment, .history {
-      background: #36393f;
-      padding: 15px;
-      margin-top: 20px;
-      border-radius: 8px;
-    }
-    .input-group {
-      margin-bottom: 10px;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 1rem;
-      border: 1px solid #444b54;
-      background-color: #2f3136;
-      color: #dcddde;
-      border-radius: 5px;
-    }
-    button {
-      background-color: #7289da;
-      border-color: #7289da;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #5f6f87;
-    }
-    ul {
-      padding-left: 20px;
-    }
-    .history-entry {
-      margin-bottom: 10px;
-      padding: 10px;
-      background: #444b54;
-      border: 1px solid #4f545c;
-      border-radius: 5px;
-    }
+    /* Your existing styles */
   </style>
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <h1>Fox Train Convoy Assignment</h1>
@@ -72,30 +14,32 @@
     <i class="fab fa-discord"></i>Need support? Contact <strong>mrdevileggs</strong> on Discord.
   </div>
 
-  <div class="input-group">
-    <input type="text" id="leaderName" placeholder="Enter leader name" />
-    <input type="text" id="companion1" placeholder="Enter 1st companion" />
-    <input type="text" id="companion2" placeholder="Enter 2nd companion" />
-    <button onclick="logConvoy()">Log Today's Convoy</button>
-  </div>
+  <div>
+    <div class="input-group">
+      <input type="text" id="leaderName" placeholder="Enter leader name" />
+      <input type="text" id="companion1" placeholder="Enter 1st companion" />
+      <input type="text" id="companion2" placeholder="Enter 2nd companion" />
+      <button onclick="logConvoy()">Log Today's Convoy</button>
+    </div>
 
-  <div class="assignment" id="todayAssignment">
-    <strong>Today's Convoy:</strong>
-    <ul id="convoyList">
-      <li>Date: -</li>
-      <li>Leader: -</li>
-      <li>Companions: -</li>
-    </ul>
-  </div>
+    <div class="assignment" id="todayAssignment">
+      <strong>Today's Convoy:</strong>
+      <ul id="convoyList">
+        <li>Date: -</li>
+        <li>Leader: -</li>
+        <li>Companions: -</li>
+      </ul>
+    </div>
 
-  <div class="history">
-    <h3>Past Convoys</h3>
-    <div id="assignmentHistory"></div>
+    <div class="history">
+      <h3>Past Convoys</h3>
+      <div id="assignmentHistory"></div>
+    </div>
   </div>
 
   <script>
-    const correctPasswordHash = "3491d21f9820dd579b8652a37b9e88aef2c999865be8b2b7b2a3319f7dbea3a9"; // SHA-256 of "itsnotthatdeep2025"
-    let history = JSON.parse(localStorage.getItem('convoyHistory') || '[]');
+    // The correct password hash for 'log123' (SHA-256)
+    const correctPasswordHash = "77e9d03d2fa3fa2f24c1a02710b3566e337340e1ced5217bf863d8ea37f4658f";
 
     async function hashPassword(password) {
       const encoder = new TextEncoder();
@@ -104,6 +48,8 @@
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
+
+    let history = JSON.parse(localStorage.getItem('convoyHistory') || '[]');
 
     async function logConvoy() {
       const leader = document.getElementById('leaderName').value.trim();
@@ -118,47 +64,27 @@
 
       const password = prompt("Enter password to log this entry:");
       if (!password) return;
-
       const hashed = await hashPassword(password);
+
+      // Now compare the hashed password
       if (hashed !== correctPasswordHash) {
         alert('Incorrect password.');
         return;
       }
 
-      const payload = {
-        date: today,
-        leader: leader,
-        companion1: c1,
-        companion2: c2
-      };
+      history = history.filter(entry => entry.date !== today);
 
-      try {
-        await fetch('https://script.google.com/macros/s/AKfycbx1yllX_4OCI74EVt59m4QqsF9ngQTtwCF3U8tCECvctM6GyCENdpUxZuSMEsIks89icQ/exec', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
+      const entry = { date: today, leader, companions: [c1, c2] };
+      history.push(entry);
+      history.sort((a, b) => b.date.localeCompare(a.date));
+      localStorage.setItem('convoyHistory', JSON.stringify(history));
 
-        const entry = { date: today, leader, companions: [c1, c2] };
-        history = history.filter(e => e.date !== today);
-        history.push(entry);
-        history.sort((a, b) => b.date.localeCompare(a.date));
-        localStorage.setItem('convoyHistory', JSON.stringify(history));
+      renderHistory();
+      updateAssignment(entry);
 
-        renderHistory();
-        updateAssignment(entry);
-
-        document.getElementById('leaderName').value = '';
-        document.getElementById('companion1').value = '';
-        document.getElementById('companion2').value = '';
-
-        alert("Convoy logged successfully!");
-      } catch (error) {
-        console.error("Failed to send to Google Script:", error);
-        alert("Failed to log convoy. Network or server error.");
-      }
+      document.getElementById('leaderName').value = '';
+      document.getElementById('companion1').value = '';
+      document.getElementById('companion2').value = '';
     }
 
     function updateAssignment(entry) {
@@ -170,27 +96,26 @@
       `;
     }
 
-    function renderHistory() {
+    async function renderHistory() {
       history.sort((a, b) => b.date.localeCompare(a.date));
+      localStorage.setItem('convoyHistory', JSON.stringify(history));
+
       const container = document.getElementById('assignmentHistory');
       container.innerHTML = '';
-      history.forEach(entry => {
+      for (let i = 0; i < history.length; i++) {
+        const entry = history[i];
         const div = document.createElement('div');
         div.className = 'history-entry';
         div.innerHTML = `
-          <strong>Date:</strong> ${entry.date}<br>
-          <strong>Leader:</strong> ${entry.leader}<br>
-          <strong>Companions:</strong> ${entry.companions.join(', ')}
+          <strong>Date:</strong> ${entry.date} <br>
+          <strong>Leader:</strong> ${entry.leader} <br>
+          <strong>Companions:</strong> ${entry.companions.join(', ')} <br>
         `;
         container.appendChild(div);
-      });
+      }
     }
 
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const todayEntry = history.find(h => h.date === todayStr);
-    if (todayEntry) updateAssignment(todayEntry);
-    renderHistory();
+    renderHistory(); // Initial render
   </script>
 </body>
 </html>
-
