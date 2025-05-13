@@ -1,134 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Convoy Tracker</title>
+  <meta charset="UTF-8">
+  <title>Fox Convoy Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background-color: #f7f9fc;
       padding: 20px;
-      background: #f2f2f2;
     }
+
     h1 {
+      color: #333;
       text-align: center;
     }
-    #adminPanel {
+
+    #adminPanel, #addForm {
       display: none;
       margin-top: 20px;
-      padding: 20px;
       border: 1px solid #ccc;
-      background: white;
-      border-radius: 10px;
+      padding: 15px;
+      border-radius: 8px;
+      background: #fff;
     }
-    .entry {
-      margin: 10px 0;
-      padding: 10px;
-      background: white;
-      border-radius: 5px;
-      border: 1px solid #ddd;
-    }
-    button {
-      padding: 10px 20px;
-      margin-top: 10px;
-      cursor: pointer;
-      border: none;
-      background-color: #4CAF50;
-      color: white;
-      border-radius: 5px;
-    }
-    input {
-      margin: 5px;
+
+    input, button {
       padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+      max-width: 300px;
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+
+    table, th, td {
+      border: 1px solid #999;
+    }
+
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    #errorMsg {
+      color: red;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <h1>Fox Convoy Tracker</h1>
-
-  <button onclick="showAdminPanel()">Admin Login</button>
+  <div class="button-group">
+    <button onclick="showAdmin()">Admin</button>
+    <button onclick="loadEntries()">Refresh Entries</button>
+  </div>
 
   <div id="adminPanel">
-    <h2>Add Convoy Entry</h2>
-    <input type="text" id="name" placeholder="Name" />
-    <input type="text" id="task" placeholder="Task" />
-    <input type="text" id="date" placeholder="Date (e.g. 2025-05-13)" />
+    <h3>Enter Admin Password</h3>
+    <input type="password" id="adminPassword" placeholder="Password">
+    <button onclick="loginAdmin()">Login</button>
+    <div id="errorMsg"></div>
+  </div>
+
+  <div id="addForm">
+    <h3>Add Convoy Entry</h3>
+    <input type="text" id="leader" placeholder="Convoy Leader">
+    <input type="text" id="route" placeholder="Route">
+    <input type="text" id="time" placeholder="Time">
     <button onclick="addEntry()">Add Entry</button>
   </div>
 
-  <h2>Convoy Logs</h2>
-  <div id="entries"></div>
+  <table id="entryTable">
+    <thead>
+      <tr>
+        <th>Leader</th>
+        <th>Route</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbykiEpKWJSpWRlrITWMMjzYkKbjpXzhOTJNvRbNxRLqCHE2PbBtwQsKFouu_zMQdIat/exec';
-    const password = 'NotThatDeep';
+    const PASSWORD_HASH = 'e69d37a42251a4cfb36894c9c5d1b52817f6ec20c4037bd6e08cd61c6e0eab2e'; // SHA256 of "NotThatDeep"
+    const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbykiEpKWJSpWRlrITWMMjzYkKbjpXzhOTJNvRbNxRLqCHE2PbBtwQsKFouu_zMQdIat/exec';
 
-    function showAdminPanel() {
-      const input = prompt("Enter admin password:");
-      if (input === password) {
-        document.getElementById('adminPanel').style.display = 'block';
+    function showAdmin() {
+      document.getElementById('adminPanel').style.display = 'block';
+    }
+
+    async function loginAdmin() {
+      const password = document.getElementById('adminPassword').value;
+      const hash = await sha256(password);
+
+      if (hash === PASSWORD_HASH) {
+        document.getElementById('adminPanel').style.display = 'none';
+        document.getElementById('addForm').style.display = 'block';
+        document.getElementById('errorMsg').innerText = '';
       } else {
-        alert("Incorrect password.");
+        document.getElementById('errorMsg').innerText = 'Incorrect password';
       }
     }
 
-    function loadEntries() {
-      fetch(`${scriptURL}?action=get`)
-        .then(res => res.json())
-        .then(data => {
-          const container = document.getElementById('entries');
-          container.innerHTML = '';
-          if (data.status === 'success') {
-            data.entries.forEach(row => {
-              const div = document.createElement('div');
-              div.className = 'entry';
-              div.innerText = `Name: ${row[0]}, Task: ${row[1]}, Date: ${row[2]}`;
-              container.appendChild(div);
-            });
-          } else {
-            container.innerText = 'Error loading data.';
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          document.getElementById('entries').innerText = 'Failed to load entries.';
-        });
+    async function sha256(text) {
+      const msgBuffer = new TextEncoder().encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function addEntry() {
-      const name = document.getElementById('name').value;
-      const task = document.getElementById('task').value;
-      const date = document.getElementById('date').value;
+    async function addEntry() {
+      const leader = document.getElementById('leader').value;
+      const route = document.getElementById('route').value;
+      const time = document.getElementById('time').value;
 
-      fetch(scriptURL, {
+      if (!leader || !route || !time) {
+        alert("All fields are required.");
+        return;
+      }
+
+      const response = await fetch(BACKEND_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          password: password,
-          name: name,
-          task: task,
-          date: date
+          action: 'add',
+          password: PASSWORD_HASH,
+          leader,
+          route,
+          time
         })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'success') {
-            alert('Entry added!');
-            loadEntries();
-          } else {
-            alert('Error adding entry: ' + data.message);
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          alert('Failed to add entry.');
-        });
+      });
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        loadEntries();
+      } else {
+        alert("Error: " + data.message);
+      }
     }
 
-    loadEntries();
+    async function loadEntries() {
+      const response = await fetch(BACKEND_URL + '?action=get');
+      const data = await response.json();
+      const tableBody = document.querySelector("#entryTable tbody");
+      tableBody.innerHTML = '';
+
+      if (data.entries && Array.isArray(data.entries)) {
+        data.entries.forEach(entry => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${entry[0]}</td><td>${entry[1]}</td><td>${entry[2]}</td>`;
+          tableBody.appendChild(row);
+        });
+      }
+    }
+
+    window.onload = loadEntries;
   </script>
 </body>
 </html>
-
