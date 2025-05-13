@@ -261,36 +261,34 @@
         }
 
         #googleSignInBtn {
-    display: none; /* Start hidden */
-    background-color: #4285F4;
-    color: white;
-    padding: 10px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-}
-
-#googleSignInBtn.visible {
-    display: flex;
-}
-
-        .auth-error {
-            padding: 10px;
-            background: var(--discord-red);
-            color: white;
+            background: white;
+            color: #444;
+            border: 1px solid #dadce0;
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
             border-radius: 4px;
-            margin-bottom: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
 
-        .auth-error button {
-            background: white;
-            color: var(--discord-red);
-            border: none;
-            padding: 5px 10px;
-            margin-top: 5px;
-            border-radius: 3px;
-            cursor: pointer;
+        #googleSignInBtn:hover {
+            background: #f8f9fa;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        #googleSignInBtn.hidden {
+            display: none;
+        }
+
+        .auth-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border: 1px solid #f5c6cb;
         }
 
         @media (max-width: 768px) {
@@ -322,53 +320,49 @@
             }
         }
     </style>
-     <script>
-    // Global Google auth state
-    window.googleAuthReady = false;
-    
-    // Load Google auth script with callback
-    function loadGoogleAuth() {
-      return new Promise((resolve) => {
-        if (window.google) return resolve();
-        
-        const script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-          window.googleAuthReady = true;
-          resolve();
-        };
-        script.onerror = () => {
-          console.warn('Failed to load Google auth script');
-          resolve(); // Still resolve to continue with fallback
-        };
-        document.head.appendChild(script);
-      });
-    }
-    
-    // Start loading immediately
-    loadGoogleAuth();
-  </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="container">
         <header class="header">
             <h1>Daily Leader Tracker</h1>
             <div id="authButtons">
-  <div id="authError" class="auth-error hidden"></div>
-  <div id="googleSignInBtn" class="btn">
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="margin-right:8px">
-      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
-      <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-    </svg>
-    Sign in with Google
-  </div>
-  <button id="hashLoginBtn" class="btn btn-primary">Password Login</button>
-  <button id="logoutBtn" class="btn btn-danger hidden">Logout</button>
-</div>
+                <div id="authError" class="auth-error hidden"></div>
+                <div id="googleSignInBtn" class="btn hidden">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="margin-right:8px">
+                        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                        <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                    </svg>
+                    Sign in with Google
+                </div>
+                <button id="hashLoginBtn" class="btn btn-primary">Password Login</button>
+                <button id="logoutBtn" class="btn btn-danger hidden">Logout</button>
+            </div>
+        </header>
+
+        <!-- Added Admin Panel -->
+        <div id="adminPanel" class="panel hidden">
+            <h2>Admin Controls</h2>
+            <div class="form-group">
+                <label for="leader">Leader:</label>
+                <input type="text" id="leader" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="support1">Support 1:</label>
+                <input type="text" id="support1" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="support2">Support 2:</label>
+                <input type="text" id="support2" class="form-control" required>
+            </div>
+            <div class="form-actions">
+                <button id="addEntryBtn" class="btn btn-success">Add Entry</button>
+                <button id="updateEntryBtn" class="btn btn-success hidden">Update Entry</button>
+                <button id="cancelEditBtn" class="btn btn-secondary hidden">Cancel</button>
+            </div>
+        </div>
 
         <main class="panel">
             <div class="header">
@@ -421,118 +415,24 @@
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
     <script>
-// Google Sign-In button handler
-document.getElementById('googleSignInBtn').addEventListener('click', function() {
-    if (window.google && google.accounts && google.accounts.id) {
-        google.accounts.id.prompt();
-    } else {
-        console.error('Google Sign-In library not loaded');
-        document.getElementById('authError').textContent = 
-            'Google Sign-In failed to load. Please refresh or use password login.';
-        document.getElementById('authError').classList.remove('hidden');
-    }
-});
-</script>
-    <script>
         class LeaderTrackerApp {
-  constructor() {
-    this.API_URL = 'https://script.google.com/macros/s/AKfycbxYTFtOn-R1i2CdLIXKY3r_J8OLXrjvGLDtXKTHPc9tW8CxHOglpMK7fN9xYTortfCA/exec';
-    this.GOOGLE_CLIENT_ID = '876594018968-45h7apue4le7vre10o5m62buushftq6t.apps.googleusercontent.com';
-    
-    // Initialize with Google auth check
-    this._initializeWithAuth();
-  }
+            constructor() {
+                this.API_URL = 'https://script.google.com/macros/s/AKfycbxYTFtOn-R1i2CdLIXKY3r_J8OLXrjvGLDtXKTHPc9tW8CxHOglpMK7fN9xYTortfCA/exec';
+                this.GOOGLE_CLIENT_ID = '876594018968-45h7apue4le7vre10o5m62buushftq6t.apps.googleusercontent.com';
+                this.state = {
+                    isAdmin: false,
+                    currentPage: 0,
+                    pageSize: 10,
+                    totalEntries: 0,
+                    editingId: null,
+                    authMethod: null,
+                    authToken: null
+                };
 
-  async _initializeWithAuth() {
-    // Wait for either Google auth to load or timeout
-    await Promise.race([
-      new Promise(resolve => {
-        if (window.googleAuthReady) resolve();
-        const check = () => window.googleAuthReady ? resolve() : setTimeout(check, 100);
-        check();
-      }),
-      new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
-    ]);
-
-    // Initialize the rest of the app
-    this.elements = this._initElements();
-    this._setupEventListeners();
-    
-    // Setup auth based on what's available
-    if (window.google && google.accounts && google.accounts.id) {
-      this._setupGoogleAuth();
-    } else {
-      this._showAuthFallback('Google Sign-In is currently unavailable');
-    }
-    
-    this.checkAuthState();
-  }
-
-  _setupGoogleAuth() {
-    try {
-      google.accounts.id.initialize({
-        client_id: this.GOOGLE_CLIENT_ID,
-        callback: (response) => {
-          console.log('Google auth response:', response);
-          this._handleGoogleSignIn(response);
-        },
-        prompt_parent_id: 'authButtons',
-        ux_mode: 'popup'
-      });
-      
-      // Try silent sign-in if token exists
-      if (localStorage.getItem('googleAuthToken')) {
-        google.accounts.id.prompt(notification => {
-          if (notification.isNotDisplayed() || notification.isSkipped()) {
-            console.log('Auto sign-in skipped');
-          }
-        });
-      }
-      
-      this.elements.googleSignInBtn.classList.remove('hidden');
-    } catch (error) {
-      console.error('Google auth setup failed:', error);
-      this._showAuthFallback('Google Sign-In error');
-    }
-  }
-
- _showAuthFallback(message) {
-    console.warn(message);
-    this.elements.googleSignInBtn.classList.add('hidden');
-    this.elements.authError.textContent = message + '. Please use password login.';
-    this.elements.authError.classList.remove('hidden');
-}
-
-_initializeGoogleAuthWithRetry(attempt = 0) {
-    const maxAttempts = 3;
-    // Rest of your method implementation
-}
-
-// Then in your constructor or initialization code:
-this.elements = this._initElements();
-this._setupEventListeners();
-this._initializeGoogleAuthWithRetry();
-               
-                
-}
-
-        _initializeGoogleAuthWithRetry(attempt = 0) {
-    const maxAttempts = 3;
-    
-    if (window.google && google.accounts && google.accounts.id) {
-        this._setupGoogleAuth();
-    } else if (attempt < maxAttempts) {
-        setTimeout(() => {
-            this._initializeGoogleAuthWithRetry(attempt + 1);
-        }, 500 * (attempt + 1));
-    } else {
-        console.warn('Google Sign-In failed after retries');
-        this.elements.googleSignInBtn.classList.add('hidden');
-        this.elements.authError.textContent = 
-            'Google Sign-In unavailable. Please use password login.';
-        this.elements.authError.classList.remove('hidden');
-    }
-}
+                this.elements = this._initElements();
+                this._setupEventListeners();
+                this._initializeAuth();
+            }
 
             _initElements() {
                 return {
@@ -570,15 +470,23 @@ this._initializeGoogleAuthWithRetry();
 
             async _initializeAuth() {
                 try {
-                    await loadGoogleAuth();
+                    // Wait for Google auth to load with timeout
+                    await new Promise((resolve) => {
+                        const check = () => {
+                            if (window.google && google.accounts) {
+                                resolve();
+                            } else {
+                                setTimeout(check, 100);
+                            }
+                        };
+                        setTimeout(() => check(), 1000);
+                    });
+
                     this._setupGoogleAuth();
-                    this.state.googleReady = true;
                     this.elements.googleSignInBtn.classList.remove('hidden');
                 } catch (error) {
                     console.warn("Google auth failed to load:", error);
-                    this.elements.authError.textContent = "Google Sign-In unavailable. Using password login.";
-                    this.elements.authError.classList.remove('hidden');
-                    this.state.googleReady = false;
+                    this._showAuthFallback("Google Sign-In unavailable");
                 }
                 this.checkAuthState();
             }
@@ -586,32 +494,51 @@ this._initializeGoogleAuthWithRetry();
             _setupGoogleAuth() {
                 google.accounts.id.initialize({
                     client_id: this.GOOGLE_CLIENT_ID,
-                    callback: (response) => this._handleGoogleSignIn(response)
+                    callback: (response) => this._handleGoogleSignIn(response),
+                    prompt_parent_id: 'authButtons'
                 });
-                
+
                 if (localStorage.getItem('googleAuthToken')) {
-                    this._parseToken(localStorage.getItem('googleAuthToken'));
+                    google.accounts.id.prompt();
                 }
             }
 
-            _parseToken(token) {
-                try {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    this.state.currentUser = {
-                        email: payload.email,
-                        name: payload.name,
-                        picture: payload.picture
-                    };
-                } catch (error) {
-                    console.error("Error parsing token:", error);
+            _showAuthFallback(message) {
+                console.warn(message);
+                this.elements.googleSignInBtn.classList.add('hidden');
+                this.elements.authError.textContent = message + '. Please use password login.';
+                this.elements.authError.classList.remove('hidden');
+            }
+
+            _initializeGoogleAuthWithRetry(attempt = 0) {
+                const maxAttempts = 3;
+                
+                if (window.google && google.accounts && google.accounts.id) {
+                    this._setupGoogleAuth();
+                } else if (attempt < maxAttempts) {
+                    setTimeout(() => {
+                        this._initializeGoogleAuthWithRetry(attempt + 1);
+                    }, 500 * (attempt + 1));
+                } else {
+                    this._showAuthFallback('Google Sign-In unavailable after retries');
                 }
             }
 
             _setupEventListeners() {
-                // Auth buttons
                 this.elements.googleSignInBtn.addEventListener('click', () => {
-                    google.accounts.id.prompt();
+                    if (window.google && google.accounts && google.accounts.id) {
+                        google.accounts.id.prompt();
+                    } else {
+                        this._showAuthFallback('Google Sign-In not loaded');
+                    this.elements.googleSignInBtn.classList.add('hidden');
+                    this.elements.hashLoginBtn.classList.remove('hidden');
+                    this.elements.authError.classList.remove('hidden');
+                    this.elements.authError.textContent = 'Google Sign-In failed to load. Please use password login.';
+                    console.error('Google Sign-In library not loaded');
+                    this._initializeGoogleAuthWithRetry();
+                    }
                 });
+
                 this.elements.hashLoginBtn.addEventListener('click', () => this.showLoginModal());
                 this.elements.logoutBtn.addEventListener('click', () => this.handleLogout());
                 this.elements.submitLoginBtn.addEventListener('click', () => this.handleHashLogin());
@@ -620,21 +547,17 @@ this._initializeGoogleAuthWithRetry();
                     if (e.key === 'Enter') this.handleHashLogin();
                 });
 
-                // Form actions
                 this.elements.addEntryBtn.addEventListener('click', () => this.handleAddEntry());
                 this.elements.updateEntryBtn.addEventListener('click', () => this.handleUpdateEntry());
                 this.elements.cancelEditBtn.addEventListener('click', () => this.cancelEdit());
 
-                // Data actions
                 this.elements.refreshBtn.addEventListener('click', () => this.loadData());
                 this.elements.prevPageBtn.addEventListener('click', () => this.prevPage());
                 this.elements.nextPageBtn.addEventListener('click', () => this.nextPage());
 
-                // Modal actions
                 this.elements.cancelConfirmBtn.addEventListener('click', () => this.hideConfirmModal());
                 this.elements.submitConfirmBtn.addEventListener('click', () => {
-                    const currentAction = this.elements.submitConfirmBtn.dataset.action;
-                    if (currentAction === 'delete') {
+                    if (this.elements.submitConfirmBtn.dataset.action === 'delete') {
                         this.handleDelete(this.state.editingId);
                     }
                 });
@@ -644,11 +567,9 @@ this._initializeGoogleAuthWithRetry();
                 try {
                     let response;
                     if (this.state.authMethod === 'google' && localStorage.getItem('googleAuthToken')) {
-                        response = await this.apiRequest('GET', {
-                            action: 'verify'
-                        });
+                        response = await this.apiRequest('GET', { action: 'verify' });
                     } else if (this.state.authMethod === 'hash' && this.state.authToken) {
-                        response = await this.apiRequest('GET', {
+                        response = await this.apiRequest('GET', { 
                             action: 'verify',
                             passwordHash: this.state.authToken
                         });
@@ -676,9 +597,7 @@ this._initializeGoogleAuthWithRetry();
 
             hideAdminUI() {
                 this.elements.adminPanel.classList.add('hidden');
-                if (this.state.googleReady) {
-                    this.elements.googleSignInBtn.classList.remove('hidden');
-                }
+                this.elements.googleSignInBtn.classList.remove('hidden');
                 this.elements.hashLoginBtn.classList.remove('hidden');
                 this.elements.logoutBtn.classList.add('hidden');
             }
@@ -739,7 +658,6 @@ this._initializeGoogleAuthWithRetry();
 
             _handleGoogleSignIn(response) {
                 localStorage.setItem('googleAuthToken', response.credential);
-                this._parseToken(response.credential);
                 this.state.authMethod = 'google';
                 this.checkAuthState();
             }
@@ -759,8 +677,7 @@ this._initializeGoogleAuthWithRetry();
                     totalEntries: 0,
                     editingId: null,
                     authMethod: null,
-                    authToken: null,
-                    googleReady: this.state.googleReady
+                    authToken: null
                 };
                 
                 this.hideAdminUI();
