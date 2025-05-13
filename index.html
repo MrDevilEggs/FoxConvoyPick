@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Fox Train Convoy Assignment</title>
   <style>
     body {
@@ -53,9 +53,6 @@
     button:hover {
       background-color: #5f6f87;
     }
-    ul {
-      padding-left: 20px;
-    }
     .history-entry {
       margin-bottom: 10px;
       padding: 10px;
@@ -72,80 +69,74 @@
     <i class="fab fa-discord"></i>Need support? Contact <strong>mrdevileggs</strong> on Discord.
   </div>
 
-  <div>
-    <div class="input-group">
-      <input type="text" id="leaderName" placeholder="Enter leader name" />
-      <input type="text" id="companion1" placeholder="Enter 1st companion" />
-      <input type="text" id="companion2" placeholder="Enter 2nd companion" />
-      <button onclick="logConvoy()">Log Today's Convoy</button>
-    </div>
+  <div class="input-group">
+    <input type="text" id="leaderName" placeholder="Enter leader name" />
+    <input type="text" id="companion1" placeholder="Enter 1st companion" />
+    <input type="text" id="companion2" placeholder="Enter 2nd companion" />
+    <button onclick="logConvoy()">Log Today's Convoy</button>
+  </div>
 
-    <div class="assignment" id="todayAssignment">
-      <strong>Today's Convoy:</strong>
-      <ul id="convoyList">
-        <li>Date: -</li>
-        <li>Leader: -</li>
-        <li>Companions: -</li>
-      </ul>
-    </div>
+  <div class="assignment" id="todayAssignment">
+    <strong>Today's Convoy:</strong>
+    <ul id="convoyList">
+      <li>Date: -</li>
+      <li>Leader: -</li>
+      <li>Companions: -</li>
+    </ul>
+  </div>
 
-    <!-- Edit menu hidden -->
-    <div class="edit-menu" style="display: none;">
-      <h3>Edit Past Assignments</h3>
-      <input type="password" id="editPassword" placeholder="Enter password to edit" />
-    </div>
-
-    <div class="history">
-      <h3>Past Convoys</h3>
-      <div id="assignmentHistory"></div>
-    </div>
+  <div class="history">
+    <h3>Past Convoys</h3>
+    <div id="assignmentHistory"></div>
   </div>
 
   <script>
-    const correctPasswordHash = "77e9d03d2fa3fa2f24c1a02710b3566e337340e1ced5217bf863d8ea37f4658f";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1yllX_4OCI74EVt59m4QqsF9ngQTtwCF3U8tCECvctM6GyCENdpUxZuSMEsIks89icQ/exec";
 
-    async function hashPassword(password) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    function getTodayDate() {
+      return new Date().toISOString().slice(0, 10);
     }
-
-    let history = JSON.parse(localStorage.getItem('convoyHistory') || '[]');
 
     async function logConvoy() {
       const leader = document.getElementById('leaderName').value.trim();
       const c1 = document.getElementById('companion1').value.trim();
       const c2 = document.getElementById('companion2').value.trim();
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getTodayDate();
 
       if (!leader || !c1 || !c2) {
-        alert('Please enter all three names.');
+        alert("Please fill all fields.");
         return;
       }
 
-      const password = prompt("Enter password to log this entry:");
-      if (!password) return;
-      const hashed = await hashPassword(password);
-      if (hashed !== correctPasswordHash) {
-        alert('Incorrect password.');
-        return;
+      const data = {
+        date: today,
+        leader: leader,
+        companion1: c1,
+        companion2: c2
+      };
+
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(data),
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        if (response.ok) {
+          alert("Convoy logged successfully!");
+          fetchConvoys();
+          document.getElementById('leaderName').value = '';
+          document.getElementById('companion1').value = '';
+          document.getElementById('companion2').value = '';
+        } else {
+          alert("Failed to log convoy.");
+        }
+      } catch (err) {
+        console.error("Error submitting:", err);
+        alert("Network error.");
       }
-
-      history = history.filter(entry => entry.date !== today);
-
-      const entry = { date: today, leader, companions: [c1, c2] };
-      history.push(entry);
-      history.sort((a, b) => b.date.localeCompare(a.date));
-      localStorage.setItem('convoyHistory', JSON.stringify(history));
-
-      renderHistory();
-      updateAssignment(entry);
-
-      document.getElementById('leaderName').value = '';
-      document.getElementById('companion1').value = '';
-      document.getElementById('companion2').value = '';
     }
 
     function updateAssignment(entry) {
@@ -153,55 +144,40 @@
       list.innerHTML = `
         <li><strong>Date:</strong> ${entry.date}</li>
         <li><strong>Leader:</strong> ${entry.leader}</li>
-        <li><strong>Companions:</strong> ${entry.companions.join(', ')}</li>
+        <li><strong>Companions:</strong> ${entry.companion1}, ${entry.companion2}</li>
       `;
     }
 
-    async function renderHistory() {
-      history.sort((a, b) => b.date.localeCompare(a.date));
-      localStorage.setItem('convoyHistory', JSON.stringify(history));
+    async function fetchConvoys() {
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const convoys = await res.json();
+        convoys.sort((a, b) => b.date.localeCompare(a.date));
 
-      const container = document.getElementById('assignmentHistory');
-      container.innerHTML = '';
-      for (let i = 0; i < history.length; i++) {
-        const entry = history[i];
-        const div = document.createElement('div');
-        div.className = 'history-entry';
-        div.innerHTML = `
-          <strong>Date:</strong> ${entry.date} <br>
-          <strong>Leader:</strong> ${entry.leader} <br>
-          <strong>Companions:</strong> ${entry.companions.join(', ')} <br>
-          <button onclick="requestEdit(${i})">Edit</button>
-        `;
-        container.appendChild(div);
+        const container = document.getElementById("assignmentHistory");
+        container.innerHTML = "";
+
+        convoys.forEach(entry => {
+          const div = document.createElement("div");
+          div.className = "history-entry";
+          div.innerHTML = `
+            <strong>Date:</strong> ${entry.date}<br>
+            <strong>Leader:</strong> ${entry.leader}<br>
+            <strong>Companions:</strong> ${entry.companion1}, ${entry.companion2}
+          `;
+          container.appendChild(div);
+        });
+
+        const today = getTodayDate();
+        const todayEntry = convoys.find(c => c.date === today);
+        if (todayEntry) updateAssignment(todayEntry);
+
+      } catch (err) {
+        console.error("Failed to load convoys:", err);
       }
     }
 
-    async function requestEdit(index) {
-      const password = prompt("Enter password to edit this entry:");
-      if (!password) return;
-      const hashed = await hashPassword(password);
-      if (hashed !== correctPasswordHash) {
-        alert('Incorrect password.');
-        return;
-      }
-      const entry = history[index];
-      const newLeader = prompt('Edit leader name:', entry.leader);
-      const newC1 = prompt('Edit first companion:', entry.companions[0]);
-      const newC2 = prompt('Edit second companion:', entry.companions[1]);
-      const newDate = prompt('Edit date (YYYY-MM-DD):', entry.date);
-      if (newLeader && newC1 && newC2 && newDate) {
-        history[index] = { date: newDate, leader: newLeader, companions: [newC1, newC2] };
-        history.sort((a, b) => b.date.localeCompare(a.date));
-        localStorage.setItem('convoyHistory', JSON.stringify(history));
-        renderHistory();
-      }
-    }
-
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const todayEntry = history.find(h => h.date === todayStr);
-    if (todayEntry) updateAssignment(todayEntry);
-    renderHistory();
+    window.onload = fetchConvoys;
   </script>
 </body>
 </html>
